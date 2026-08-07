@@ -21,6 +21,7 @@
   const startBtn = document.getElementById("start");
   const btnLeft = document.getElementById("btn-left");
   const btnRight = document.getElementById("btn-right");
+  const btnMusic = document.getElementById("btn-music");
   const mobileCtrls = document.getElementById("mobile-controls");
 
   /* ── Constants ── */
@@ -539,6 +540,12 @@
     }
     bindSideBtn(btnLeft, "ArrowLeft");
     bindSideBtn(btnRight, "ArrowRight");
+
+    btnMusic.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (gameState === "playing") cycleBGM();
+    });
 
     // Start loading
     resizeCanvas();

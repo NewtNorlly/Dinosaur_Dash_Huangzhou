@@ -185,6 +185,12 @@ canvas {
 .ctrl-btn--side {
   width: 76px; height: 76px;
 }
+.ctrl-btn--music {
+  width: 48px; height: 48px;
+  align-self: center;
+  margin-bottom: 14px;
+  font-size: 22px;
+}
 
 #final-score {
   font-size: clamp(24px, 5vw, 40px);
