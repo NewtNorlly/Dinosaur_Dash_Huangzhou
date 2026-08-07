@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="恐龙快跑（黄州府）——穿越黄州名胜古迹的跑酷小游戏">
+  <meta name="theme-color" content="#0a0f1a">
+  <title>恐龙快跑（黄州府）</title>
+  <link rel="stylesheet" href="dino.css?v=20260807">
+  <link rel="icon" type="image/png" href="game/assets/小恐龙-removebg-preview.webp">
+</head>
+<body>
+
+  <!-- Loading -->
+  <div id="loading">
+    <div class="loading-bar"><div id="loading-progress"></div></div>
+    <p id="loading-text">加载中…</p>
+  </div>
+
+  <!-- Game canvas -->
+  <canvas id="game"></canvas>
+
+  <!-- Score -->
+  <div id="score">Run,run,run: 0</div>
+
+  <!-- Sound toggle -->
+  <button id="sound-toggle" title="音乐">🔊</button>
+
+  <!-- Start screen -->
+  <div id="startscreen" class="overlay">
+    <h1>恐龙快跑</h1>
+    <p class="sub">黄州府</p>
+    <button id="start" class="btn">开始游戏</button>
+    <p class="hint">空格 / 点击画面 跳跃<br>← → 键 左右移动 · M 键 切歌</p>
+  </div>
+
+  <!-- Game over -->
+  <div id="gameover" class="overlay" hidden>
+    <h1>游戏结束</h1>
+    <p id="final-score"></p>
+    <button id="restart" class="btn">再来一局</button>
+  </div>
+
+  <script src="dino.js?v=20260807"></script>
+</body>
+</html>
