@@ -55,12 +55,14 @@
 
   <!-- Mobile controls -->
   <div id="mobile-controls" class="mobile-ctrl">
-    <button id="btn-left" class="ctrl-btn ctrl-btn--side" aria-label="左移·跳跃">
-      <svg viewBox="0 0 24 24" width="32" height="32"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" fill="currentColor"/></svg>
-    </button>
-    <button id="btn-right" class="ctrl-btn ctrl-btn--side" aria-label="右移·跳跃">
-      <svg viewBox="0 0 24 24" width="32" height="32"><path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z" fill="currentColor"/></svg>
-    </button>
+    <div class="ctrl-group">
+      <button id="btn-jump-left" class="ctrl-btn ctrl-btn--jump" aria-label="跳跃"><span>▲</span></button>
+      <button id="btn-left" class="ctrl-btn ctrl-btn--dir" aria-label="左移"><span>◀</span></button>
+    </div>
+    <div class="ctrl-group">
+      <button id="btn-jump-right" class="ctrl-btn ctrl-btn--jump" aria-label="跳跃"><span>▲</span></button>
+      <button id="btn-right" class="ctrl-btn ctrl-btn--dir" aria-label="右移"><span>▶</span></button>
+    </div>
   </div>
 
   <script src="dino.js?v=20260807"></script>

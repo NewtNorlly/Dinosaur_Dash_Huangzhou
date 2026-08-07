@@ -169,8 +169,11 @@ canvas {
 @media (pointer: coarse) {
   .mobile-ctrl { display: flex; }
 }
-.ctrl-btn {
+.ctrl-group {
   pointer-events: auto;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.ctrl-btn {
   border: none; border-radius: 50%;
   background: rgba(255,255,255,0.15);
   backdrop-filter: blur(8px);
@@ -184,21 +187,17 @@ canvas {
   background: rgba(255,255,255,0.32);
   transform: scale(0.9);
 }
-.ctrl-btn--left, .ctrl-btn--right {
+.ctrl-btn--jump {
   width: 60px; height: 60px;
 }
-.ctrl-btn--jump {
-  width: 80px; height: 80px;
-  margin-bottom: 10px;
+.ctrl-btn--jump span {
+  font-size: 24px; line-height: 1;
 }
-.ctrl-btn--side {
-  width: 76px; height: 76px;
+.ctrl-btn--dir {
+  width: 68px; height: 68px;
 }
-.ctrl-btn--music {
-  width: 48px; height: 48px;
-  align-self: center;
-  margin-bottom: 14px;
-  font-size: 22px;
+.ctrl-btn--dir span {
+  font-size: 28px; line-height: 1;
 }
 
 #final-score {

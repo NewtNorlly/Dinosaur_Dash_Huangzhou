@@ -22,6 +22,8 @@
   const startBtn = document.getElementById("start");
   const btnLeft = document.getElementById("btn-left");
   const btnRight = document.getElementById("btn-right");
+  const btnJumpL = document.getElementById("btn-jump-left");
+  const btnJumpR = document.getElementById("btn-jump-right");
   const btnMusic = document.getElementById("btn-music");
   const mobileCtrls = document.getElementById("mobile-controls");
 
@@ -214,7 +216,7 @@
     const asset = assets[key];
     if (!asset || !asset.path) return;
     try {
-      bgmAudio = new Audio(asset.path);
+      bgmAudio = new Audio(encodeURI(asset.path));
       bgmAudio.volume = 0.4;
       bgmAudio.loop = true;
       const playPromise = bgmAudio.play();
@@ -523,14 +525,11 @@
       if (e.target === gameOverScreen) restartGame();
     });
 
-    // Mobile button controls — tap = jump, hold = move
-    function bindSideBtn(btn, dirKey) {
+    // Mobile button controls — jump buttons only jump, dir buttons only move
+    function bindDirBtn(btn, dirKey) {
       btn.addEventListener("pointerdown", (e) => {
         e.preventDefault();
-        if (gameState === "playing") {
-          keys[dirKey] = true;
-          if (!dino.jumping) { dino.jumping = true; dino.vy = JUMP_VEL; }
-        }
+        if (gameState === "playing") keys[dirKey] = true;
       });
       btn.addEventListener("pointerup", (e) => {
         e.preventDefault();
@@ -539,8 +538,18 @@
       btn.addEventListener("pointerleave", () => { keys[dirKey] = false; });
       btn.addEventListener("pointercancel", () => { keys[dirKey] = false; });
     }
-    bindSideBtn(btnLeft, "ArrowLeft");
-    bindSideBtn(btnRight, "ArrowRight");
+    function bindJumpBtn(btn) {
+      btn.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        if (gameState === "playing" && !dino.jumping) {
+          dino.jumping = true; dino.vy = JUMP_VEL;
+        }
+      });
+    }
+    bindDirBtn(btnLeft, "ArrowLeft");
+    bindDirBtn(btnRight, "ArrowRight");
+    bindJumpBtn(btnJumpL);
+    bindJumpBtn(btnJumpR);
 
     btnMusic.addEventListener("pointerdown", (e) => {
       e.preventDefault();
