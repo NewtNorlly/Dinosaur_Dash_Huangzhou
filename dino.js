@@ -487,15 +487,32 @@
   }
 
   function startGame() {
+    if (gameState === "playing") return;
     gameState = "playing";
     startScreen.hidden = true;
+    startBtn.disabled = true;
     gameOverScreen.hidden = true;
     scoreEl.style.display = "block";
     topCtrls.style.display = "";
-    mobileCtrls.style.display = "";
+    requestAnimationFrame(() => {
+      if (gameState === "playing") mobileCtrls.style.display = "";
+    });
     lastTime = 0;
     setupGame();
     if (soundOn) playBGM();
+  }
+
+  function showStartScreen() {
+    gameState = "start";
+    startScreen.hidden = false;
+    startBtn.disabled = false;
+    gameOverScreen.hidden = true;
+    mobileCtrls.style.display = "none";
+    topCtrls.style.display = "none";
+    scoreEl.style.display = "none";
+    drawBackground();
+    resetDino();
+    drawDino();
   }
 
   function endGame() {
