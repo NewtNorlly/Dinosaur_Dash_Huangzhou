@@ -14,6 +14,7 @@
   const loadingText = document.getElementById("loading-text");
   const scoreEl = document.getElementById("score");
   const soundBtn = document.getElementById("sound-toggle");
+  const topCtrls = document.getElementById("top-controls");
   const startScreen = document.getElementById("startscreen");
   const gameOverScreen = document.getElementById("gameover");
   const finalScoreEl = document.getElementById("final-score");
@@ -438,8 +439,8 @@
     startScreen.hidden = false;
     gameOverScreen.hidden = true;
     mobileCtrls.style.display = "none";
+    topCtrls.style.display = "none";
     scoreEl.style.display = "none";
-    soundBtn.style.display = "none";
     drawBackground();
     resetDino();
     drawDino();
@@ -450,7 +451,7 @@
     startScreen.hidden = true;
     gameOverScreen.hidden = true;
     scoreEl.style.display = "block";
-    soundBtn.style.display = "flex";
+    topCtrls.style.display = "";
     mobileCtrls.style.display = "";
     lastTime = 0;
     setupGame();
@@ -463,7 +464,7 @@
     gameOverScreen.hidden = false;
     finalScoreEl.textContent = "最终得分：" + score;
     scoreEl.style.display = "none";
-    soundBtn.style.display = "none";
+    topCtrls.style.display = "none";
     mobileCtrls.style.display = "none";
   }
 

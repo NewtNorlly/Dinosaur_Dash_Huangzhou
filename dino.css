@@ -54,17 +54,26 @@ canvas {
   pointer-events: none;
 }
 
-/* ── Sound toggle ── */
-#sound-toggle {
-  position: fixed; top: 14px; right: 20px; z-index: 50;
+/* ── Top-right controls ── */
+#top-controls {
+  position: fixed; top: 12px; right: 16px; z-index: 55;
+  display: flex; gap: 8px;
+}
+.top-btn,
+#top-controls #sound-toggle {
   width: 44px; height: 44px;
-  border: 1px solid rgba(26,39,68,0.25); border-radius: 50%;
-  background: rgba(255,255,255,0.65); backdrop-filter: blur(6px);
-  font-size: 22px; cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.18); border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(6px);
+  font-size: 20px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,0.8);
   transition: background 0.2s;
 }
-#sound-toggle:hover { background: rgba(255,255,255,0.85); }
+.top-btn:hover,
+#top-controls #sound-toggle:hover {
+  background: rgba(255,255,255,0.25);
+}
 
 /* ── Overlays ── */
 .overlay {
