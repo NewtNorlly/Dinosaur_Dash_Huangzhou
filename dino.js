@@ -22,7 +22,7 @@
 
   /* ── Constants ── */
   const W = 1600, H = 900;                 // logical canvas (16:9)
-  const GROUND_Y = 750;                    // ground line (150px ground zone)
+  const GROUND_Y = H;                      // bottom of screen
   const DINO_W = 160, DINO_H = 240;        // dinosaur display size
   const DINO_X0 = (W - DINO_W) >> 1;       // start x (center)
   const OBSTACLE_W = 48, OBSTACLE_H = 64;  // hedgehog size
@@ -164,9 +164,9 @@
       const lmKey = LANDMARK_KEYS[i];
       const lm = assets[lmKey];
       if (lm && lm.img) {
-        const scale = GROUND_Y / lm.h;
+        const scale = H / lm.h;
         const sw = Math.round(lm.w * scale);
-        bgSprites.push({ img: lm.img, x, w: sw, h: Math.round(GROUND_Y), key: lmKey });
+        bgSprites.push({ img: lm.img, x, w: sw, h: H, key: lmKey });
         x += sw;
       }
 
@@ -176,10 +176,9 @@
         const colKey = COLUMN_KEY + colIdx;
         const col = assets[colKey];
         if (col && col.img) {
-          const colH = Math.min(col.h, 240);
-          const colScale = colH / col.h;
+          const colScale = H / col.h;
           const colW = Math.round(col.w * colScale);
-          bgSprites.push({ img: col.img, x, w: colW, h: colH, key: colKey, isColumn: true });
+          bgSprites.push({ img: col.img, x, w: colW, h: H, key: colKey, isColumn: true });
           x += colW;
         } else {
           x += 36;
@@ -193,21 +192,13 @@
   /* ═══════════════════════════ Scaling ═══════════════════════════ */
 
   function resizeCanvas() {
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const ratio = W / H;
-    let cw, ch;
-    if (vw / vh > ratio) {
-      ch = vh;
-      cw = ch * ratio;
-    } else {
-      cw = vw;
-      ch = cw / ratio;
-    }
+    // Fill the entire viewport — stretch to fit any screen
+    const w = window.innerWidth;
+    const h = window.innerHeight;
     canvas.width = W;
     canvas.height = H;
-    canvas.style.width = Math.floor(cw) + "px";
-    canvas.style.height = Math.floor(ch) + "px";
+    canvas.style.width = w + "px";
+    canvas.style.height = h + "px";
   }
 
   /* ═══════════════════════════ Audio ═══════════════════════════ */
@@ -302,44 +293,19 @@
   function drawBackground() {
     // Sky
     ctx.fillStyle = SKY_COLOR;
-    ctx.fillRect(0, 0, W, GROUND_Y);
+    ctx.fillRect(0, 0, W, H);
 
-    if (totalBgWidth) {
-      const offset = bgX % totalBgWidth;
-      for (const spr of bgSprites) {
-        for (let copy = 0; copy < 2; copy++) {
-          const sx = spr.x - offset + copy * totalBgWidth;
-          if (sx + spr.w <= 0 || sx >= W) continue;
-          if (spr.isColumn) {
-            // Columns sit on top of the ground
-            const drawY = GROUND_Y - spr.h;
-            ctx.drawImage(spr.img, sx, drawY, spr.w, spr.h);
-          } else {
-            ctx.drawImage(spr.img, sx, 0, spr.w, spr.h);
-          }
-        }
+    if (!totalBgWidth) return;
+
+    const offset = bgX % totalBgWidth;
+
+    for (const spr of bgSprites) {
+      for (let copy = 0; copy < 2; copy++) {
+        const sx = spr.x - offset + copy * totalBgWidth;
+        if (sx + spr.w <= 0 || sx >= W) continue;
+        ctx.drawImage(spr.img, sx, 0, spr.w, spr.h);
       }
     }
-
-    // Ground — grass strip
-    const grass = ctx.createLinearGradient(0, GROUND_Y, 0, GROUND_Y + 40);
-    grass.addColorStop(0, "#6db840");
-    grass.addColorStop(0.3, "#559c32");
-    grass.addColorStop(1, "#3d7a20");
-    ctx.fillStyle = grass;
-    ctx.fillRect(0, GROUND_Y, W, 40);
-
-    // Dirt ground
-    ctx.fillStyle = "#8b6914";
-    ctx.fillRect(0, GROUND_Y + 40, W, H - GROUND_Y - 40);
-
-    // Dirt top edge shadow
-    ctx.fillStyle = "#6b4f10";
-    ctx.fillRect(0, GROUND_Y + 40, W, 4);
-
-    // Grass highlights (subtle)
-    ctx.fillStyle = "#7ec850";
-    ctx.fillRect(0, GROUND_Y, W, 3);
   }
 
   function drawDino() {
