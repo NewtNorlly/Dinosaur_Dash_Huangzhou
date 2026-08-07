@@ -21,12 +21,12 @@
   const startBtn = document.getElementById("start");
 
   /* ── Constants ── */
-  const W = 1600, H = 800;                 // logical canvas
-  const GROUND_Y = 720;                    // ground line
+  const W = 1600, H = 900;                 // logical canvas (16:9)
+  const GROUND_Y = 750;                    // ground line (150px ground zone)
   const DINO_W = 160, DINO_H = 240;        // dinosaur display size
   const DINO_X0 = (W - DINO_W) >> 1;       // start x (center)
   const OBSTACLE_W = 48, OBSTACLE_H = 64;  // hedgehog size
-  const OBSTACLE_Y = GROUND_Y - OBSTACLE_H + 10;
+  const OBSTACLE_Y = GROUND_Y - OBSTACLE_H;
   const JUMP_VEL = -48;                    // initial jump velocity (px/frame equiv)
   const GRAVITY = 2.2;                     // gravity
   const MOVE_SPEED = 420;                  // px/sec left/right
@@ -35,7 +35,6 @@
   const OBSTACLE_MIN_SPEED = 320;
   const OBSTACLE_MAX_SPEED = 560;
   const SKY_COLOR = "#87cefa";
-  const GROUND_COLOR = "#8b7355";
 
   /* ── Landmark sequence (matches Python image_paths order) ── */
   const LANDMARK_KEYS = [
@@ -165,9 +164,9 @@
       const lmKey = LANDMARK_KEYS[i];
       const lm = assets[lmKey];
       if (lm && lm.img) {
-        const scale = H / lm.h;
+        const scale = GROUND_Y / lm.h;
         const sw = Math.round(lm.w * scale);
-        bgSprites.push({ img: lm.img, x, w: sw, h: H, key: lmKey });
+        bgSprites.push({ img: lm.img, x, w: sw, h: Math.round(GROUND_Y), key: lmKey });
         x += sw;
       }
 
@@ -301,28 +300,46 @@
   /* ═══════════════════════════ Rendering ═══════════════════════════ */
 
   function drawBackground() {
+    // Sky
     ctx.fillStyle = SKY_COLOR;
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillRect(0, 0, W, GROUND_Y);
 
-    if (!totalBgWidth) return;
-
-    const offset = bgX % totalBgWidth;
-
-    // Draw each sprite at (pos - offset), also at (pos - offset + totalBgWidth)
-    for (const spr of bgSprites) {
-      for (let copy = 0; copy < 2; copy++) {
-        const sx = spr.x - offset + copy * totalBgWidth;
-        if (sx + spr.w <= 0 || sx >= W) continue;
-        const drawY = spr.isColumn ? H - spr.h : 0;
-        ctx.drawImage(spr.img, sx, drawY, spr.w, spr.h);
+    if (totalBgWidth) {
+      const offset = bgX % totalBgWidth;
+      for (const spr of bgSprites) {
+        for (let copy = 0; copy < 2; copy++) {
+          const sx = spr.x - offset + copy * totalBgWidth;
+          if (sx + spr.w <= 0 || sx >= W) continue;
+          if (spr.isColumn) {
+            // Columns sit on top of the ground
+            const drawY = GROUND_Y - spr.h;
+            ctx.drawImage(spr.img, sx, drawY, spr.w, spr.h);
+          } else {
+            ctx.drawImage(spr.img, sx, 0, spr.w, spr.h);
+          }
+        }
       }
     }
 
-    // Ground line
-    ctx.fillStyle = GROUND_COLOR;
-    ctx.fillRect(0, GROUND_Y - 4, W, 10);
-    ctx.fillStyle = "#6b5a3e";
-    ctx.fillRect(0, GROUND_Y - 6, W, 4);
+    // Ground — grass strip
+    const grass = ctx.createLinearGradient(0, GROUND_Y, 0, GROUND_Y + 40);
+    grass.addColorStop(0, "#6db840");
+    grass.addColorStop(0.3, "#559c32");
+    grass.addColorStop(1, "#3d7a20");
+    ctx.fillStyle = grass;
+    ctx.fillRect(0, GROUND_Y, W, 40);
+
+    // Dirt ground
+    ctx.fillStyle = "#8b6914";
+    ctx.fillRect(0, GROUND_Y + 40, W, H - GROUND_Y - 40);
+
+    // Dirt top edge shadow
+    ctx.fillStyle = "#6b4f10";
+    ctx.fillRect(0, GROUND_Y + 40, W, 4);
+
+    // Grass highlights (subtle)
+    ctx.fillStyle = "#7ec850";
+    ctx.fillRect(0, GROUND_Y, W, 3);
   }
 
   function drawDino() {
