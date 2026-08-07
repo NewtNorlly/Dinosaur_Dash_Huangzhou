@@ -487,19 +487,22 @@
   }
 
   function startGame() {
-    if (gameState === "playing") return;
+    if (gameState !== "start") return;
     gameState = "playing";
-    startScreen.hidden = true;
     startBtn.disabled = true;
     gameOverScreen.hidden = true;
     scoreEl.style.display = "block";
     topCtrls.style.display = "";
-    requestAnimationFrame(() => {
-      if (gameState === "playing") mobileCtrls.style.display = "";
-    });
     lastTime = 0;
     setupGame();
     if (soundOn) playBGM();
+    // Delay hiding start screen so its click capture fully resolves
+    requestAnimationFrame(() => {
+      startScreen.hidden = true;
+      requestAnimationFrame(() => {
+        if (gameState === "playing") mobileCtrls.style.display = "";
+      });
+    });
   }
 
   function showStartScreen() {
@@ -574,7 +577,11 @@
     canvas.addEventListener("touchstart", (e) => { e.preventDefault(); });
     canvas.addEventListener("touchmove", (e) => { e.preventDefault(); });
     soundBtn.addEventListener("click", toggleSound);
-    startBtn.addEventListener("click", startGame);
+    startBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      startGame();
+    });
     restartBtn.addEventListener("click", restartGame);
     gameOverScreen.addEventListener("click", (e) => {
       if (e.target === gameOverScreen) restartGame();
