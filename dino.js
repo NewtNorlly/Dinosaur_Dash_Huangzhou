@@ -71,7 +71,6 @@
   let soundOn = true;
   let bgmIndex = 0;
   let bgmAudio = null;
-  let bgmLoaded = false;
   let lastTime = 0;
   let keys = {};
   let animId = null;
@@ -160,30 +159,23 @@
       img.src = encodeURI(path);
     });
 
-    // Preload audio — load both tracks into memory
+    // Preload audio — fetch full files into memory, store as blob URLs for instant playback
     AUDIO_LIST.forEach(({ key, path }) => {
-      const audio = new Audio();
-      audio.preload = "auto";
-      audio.volume = 0.4;
-      audio.loop = true;
-      audio.oncanplaythrough = () => {
-        assets[key] = { audio, path };
-        progress();
-      };
-      audio.onerror = () => {
-        // Fallback: still mark as loaded, will retry on play
-        assets[key] = { path };
-        progress();
-      };
-      audio.src = encodeURI(path);
-      audio.load();
-      // Timeout: if canplaythrough doesn't fire within 8s, proceed anyway
-      setTimeout(() => {
-        if (!assets[key]) {
-          assets[key] = { audio, path };
+      const url = encodeURI(path);
+      fetch(url)
+        .then((res) => {
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          return res.blob();
+        })
+        .then((blob) => {
+          assets[key] = { blobUrl: URL.createObjectURL(blob), path };
           progress();
-        }
-      }, 8000);
+        })
+        .catch(() => {
+          // Fallback: store raw path, will create new Audio each time
+          assets[key] = { path };
+          progress();
+        });
     });
   }
 
@@ -246,29 +238,16 @@
     const asset = assets[key];
     if (!asset) return;
 
-    // Use preloaded audio if available
-    if (asset.audio) {
-      bgmAudio = asset.audio;
-      bgmAudio.currentTime = 0;
-    } else if (asset.path) {
-      bgmAudio = new Audio(encodeURI(asset.path));
-      bgmAudio.volume = 0.4;
-      bgmAudio.loop = true;
-    } else {
-      return;
-    }
+    // Prefer blob URL (fully downloaded, instant), fallback to raw path
+    const src = asset.blobUrl || (asset.path ? encodeURI(asset.path) : null);
+    if (!src) return;
 
+    bgmAudio = new Audio(src);
+    bgmAudio.volume = 0.4;
+    bgmAudio.loop = true;
     try {
-      const playPromise = bgmAudio.play();
-      if (playPromise) {
-        playPromise.catch(() => {
-          bgmLoaded = false;
-        });
-      }
-      bgmLoaded = true;
-    } catch (e) {
-      bgmLoaded = false;
-    }
+      bgmAudio.play();
+    } catch (e) { /* blocked */ }
   }
 
   function stopBGM() {
