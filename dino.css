@@ -182,6 +182,9 @@ canvas {
   width: 80px; height: 80px;
   margin-bottom: 10px;
 }
+.ctrl-btn--side {
+  width: 76px; height: 76px;
+}
 
 #final-score {
   font-size: clamp(24px, 5vw, 40px);

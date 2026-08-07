@@ -20,7 +20,6 @@
   const restartBtn = document.getElementById("restart");
   const startBtn = document.getElementById("start");
   const btnLeft = document.getElementById("btn-left");
-  const btnJump = document.getElementById("btn-jump");
   const btnRight = document.getElementById("btn-right");
   const mobileCtrls = document.getElementById("mobile-controls");
 
@@ -70,7 +69,6 @@
   let bgmLoaded = false;
   let lastTime = 0;
   let keys = {};
-  let touchStartX = null;
   let animId = null;
 
   /* ═══════════════════════════ Asset Loading ═══════════════════════════ */
@@ -503,37 +501,6 @@
     keys[e.code] = false;
   }
 
-  function onTouchStart(e) {
-    if (gameState === "start") {
-      startGame();
-      return;
-    }
-    if (gameState !== "playing") return;
-    e.preventDefault();
-    if (!dino.jumping) {
-      dino.jumping = true;
-      dino.vy = JUMP_VEL;
-    }
-    // Track touch for swipe
-    touchStartX = e.touches[0].clientX;
-  }
-
-  function onTouchMove(e) {
-    if (gameState !== "playing" || touchStartX === null) return;
-    const dx = e.touches[0].clientX - touchStartX;
-    // Swipe to move dino
-    if (Math.abs(dx) > 10) {
-      const moveAmount = dx * 0.8; // scale factor
-      dino.x += moveAmount;
-      dino.x = Math.max(0, Math.min(W - dino.w, dino.x));
-      touchStartX = e.touches[0].clientX; // update for continuous swipe
-    }
-  }
-
-  function onTouchEnd() {
-    touchStartX = null;
-  }
-
   function onResize() {
     resizeCanvas();
   }
@@ -545,17 +512,8 @@
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("resize", onResize);
-    canvas.addEventListener("touchstart", onTouchStart, { passive: false });
-    canvas.addEventListener("touchmove", onTouchMove, { passive: false });
-    canvas.addEventListener("touchend", onTouchEnd);
-    canvas.addEventListener("mousedown", (e) => {
-      if (gameState === "start") { startGame(); return; }
-      if (gameState !== "playing") return;
-      if (!dino.jumping) {
-        dino.jumping = true;
-        dino.vy = JUMP_VEL;
-      }
-    });
+    canvas.addEventListener("touchstart", (e) => { e.preventDefault(); });
+    canvas.addEventListener("touchmove", (e) => { e.preventDefault(); });
     soundBtn.addEventListener("click", toggleSound);
     startBtn.addEventListener("click", startGame);
     restartBtn.addEventListener("click", restartGame);
@@ -563,32 +521,24 @@
       if (e.target === gameOverScreen) restartGame();
     });
 
-    // Mobile button controls
-    btnLeft.addEventListener("pointerdown", (e) => {
-      e.preventDefault();
-      if (gameState === "playing") keys["ArrowLeft"] = true;
-    });
-    btnLeft.addEventListener("pointerup", (e) => {
-      e.preventDefault();
-      keys["ArrowLeft"] = false;
-    });
-    btnLeft.addEventListener("pointerleave", () => { keys["ArrowLeft"] = false; });
-
-    btnRight.addEventListener("pointerdown", (e) => {
-      e.preventDefault();
-      if (gameState === "playing") keys["ArrowRight"] = true;
-    });
-    btnRight.addEventListener("pointerup", (e) => {
-      e.preventDefault();
-      keys["ArrowRight"] = false;
-    });
-    btnRight.addEventListener("pointerleave", () => { keys["ArrowRight"] = false; });
-
-    btnJump.addEventListener("pointerdown", (e) => {
-      e.preventDefault();
-      if (gameState !== "playing") return;
-      if (!dino.jumping) { dino.jumping = true; dino.vy = JUMP_VEL; }
-    });
+    // Mobile button controls — tap = jump, hold = move
+    function bindSideBtn(btn, dirKey) {
+      btn.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        if (gameState === "playing") {
+          keys[dirKey] = true;
+          if (!dino.jumping) { dino.jumping = true; dino.vy = JUMP_VEL; }
+        }
+      });
+      btn.addEventListener("pointerup", (e) => {
+        e.preventDefault();
+        keys[dirKey] = false;
+      });
+      btn.addEventListener("pointerleave", () => { keys[dirKey] = false; });
+      btn.addEventListener("pointercancel", () => { keys[dirKey] = false; });
+    }
+    bindSideBtn(btnLeft, "ArrowLeft");
+    bindSideBtn(btnRight, "ArrowRight");
 
     // Start loading
     resizeCanvas();
