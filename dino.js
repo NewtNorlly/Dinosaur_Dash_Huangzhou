@@ -64,6 +64,7 @@
   let obstacles = [];
   let score = 0;
   let gameState = "loading";  // loading | start | playing | over
+  let gameStarted = false;    // lock: once true, showStartScreen is a no-op
   let bgX = 0;                // camera scroll position
   let spawnTimer = 0;
   let spawnGap = 0;
@@ -475,37 +476,7 @@
   }
 
   function showStartScreen() {
-    gameState = "start";
-    startScreen.hidden = false;
-    gameOverScreen.hidden = true;
-    mobileCtrls.style.display = "none";
-    topCtrls.style.display = "none";
-    scoreEl.style.display = "none";
-    drawBackground();
-    resetDino();
-    drawDino();
-  }
-
-  function startGame() {
-    if (gameState !== "start") return;
-    gameState = "playing";
-    startBtn.disabled = true;
-    gameOverScreen.hidden = true;
-    scoreEl.style.display = "block";
-    topCtrls.style.display = "";
-    lastTime = 0;
-    setupGame();
-    if (soundOn) playBGM();
-    // Delay hiding start screen so its click capture fully resolves
-    requestAnimationFrame(() => {
-      startScreen.hidden = true;
-      requestAnimationFrame(() => {
-        if (gameState === "playing") mobileCtrls.style.display = "";
-      });
-    });
-  }
-
-  function showStartScreen() {
+    if (gameStarted) return;
     gameState = "start";
     startScreen.hidden = false;
     startBtn.disabled = false;
@@ -516,6 +487,25 @@
     drawBackground();
     resetDino();
     drawDino();
+  }
+
+  function startGame() {
+    if (gameState === "playing") return;
+    gameStarted = true;
+    gameState = "playing";
+    startBtn.disabled = true;
+    gameOverScreen.hidden = true;
+    scoreEl.style.display = "block";
+    topCtrls.style.display = "";
+    lastTime = 0;
+    setupGame();
+    if (soundOn) playBGM();
+    requestAnimationFrame(() => {
+      startScreen.hidden = true;
+      requestAnimationFrame(() => {
+        if (gameState === "playing") mobileCtrls.style.display = "";
+      });
+    });
   }
 
   function endGame() {
