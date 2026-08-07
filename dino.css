@@ -142,6 +142,46 @@ canvas {
 .controls-grid .touch-icon {
   font-size: 16px; width: 28px; text-align: center;
 }
+.controls-mobile {
+  margin-top: 16px; padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  font-size: 13px; color: #7e8fa0;
+  text-align: center;
+}
+
+/* ── Mobile virtual controls ── */
+.mobile-ctrl {
+  display: none;
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 55;
+  justify-content: space-between; align-items: flex-end;
+  padding: 0 24px 28px;
+  pointer-events: none;
+}
+@media (pointer: coarse) {
+  .mobile-ctrl { display: flex; }
+}
+.ctrl-btn {
+  pointer-events: auto;
+  border: none; border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(8px);
+  color: rgba(255,255,255,0.7);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s, transform 0.08s;
+}
+.ctrl-btn:active, .ctrl-btn.pressed {
+  background: rgba(255,255,255,0.32);
+  transform: scale(0.9);
+}
+.ctrl-btn--left, .ctrl-btn--right {
+  width: 60px; height: 60px;
+}
+.ctrl-btn--jump {
+  width: 80px; height: 80px;
+  margin-bottom: 10px;
+}
 
 #final-score {
   font-size: clamp(24px, 5vw, 40px);

@@ -37,8 +37,8 @@
         <div class="ctrl"><kbd>空格</kbd><kbd>↑</kbd><span>跳跃</span></div>
         <div class="ctrl"><kbd>←</kbd><kbd>→</kbd><span>左右移动</span></div>
         <div class="ctrl"><kbd>M</kbd><span>切换音乐</span></div>
-        <div class="ctrl"><span class="touch-icon">👆</span><span>点击画面跳跃</span></div>
-        <div class="ctrl"><span class="touch-icon">👈👉</span><span>滑动移动</span></div>
+      </div>
+      <p class="controls-mobile">📱 手机/平板：屏幕底部有虚拟按键，点击操作</p>
       </div>
     </div>
   </div>
@@ -48,6 +48,19 @@
     <h1>游戏结束</h1>
     <p id="final-score"></p>
     <button id="restart" class="btn">再来一局</button>
+  </div>
+
+  <!-- Mobile controls -->
+  <div id="mobile-controls" class="mobile-ctrl">
+    <button id="btn-left" class="ctrl-btn ctrl-btn--left" aria-label="左移">
+      <svg viewBox="0 0 24 24" width="28" height="28"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" fill="currentColor"/></svg>
+    </button>
+    <button id="btn-jump" class="ctrl-btn ctrl-btn--jump" aria-label="跳跃">
+      <svg viewBox="0 0 24 24" width="36" height="36"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" fill="currentColor"/></svg>
+    </button>
+    <button id="btn-right" class="ctrl-btn ctrl-btn--right" aria-label="右移">
+      <svg viewBox="0 0 24 24" width="28" height="28"><path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z" fill="currentColor"/></svg>
+    </button>
   </div>
 
   <script src="dino.js?v=20260807"></script>

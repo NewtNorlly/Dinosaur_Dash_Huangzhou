@@ -19,6 +19,10 @@
   const finalScoreEl = document.getElementById("final-score");
   const restartBtn = document.getElementById("restart");
   const startBtn = document.getElementById("start");
+  const btnLeft = document.getElementById("btn-left");
+  const btnJump = document.getElementById("btn-jump");
+  const btnRight = document.getElementById("btn-right");
+  const mobileCtrls = document.getElementById("mobile-controls");
 
   /* ── Constants ── */
   const W = 1600, H = 900;                 // logical canvas (16:9)
@@ -434,6 +438,7 @@
     gameState = "start";
     startScreen.hidden = false;
     gameOverScreen.hidden = true;
+    mobileCtrls.style.display = "none";
     scoreEl.style.display = "none";
     soundBtn.style.display = "none";
     drawBackground();
@@ -447,6 +452,7 @@
     gameOverScreen.hidden = true;
     scoreEl.style.display = "block";
     soundBtn.style.display = "flex";
+    mobileCtrls.style.display = "";
     lastTime = 0;
     setupGame();
     if (soundOn) playBGM();
@@ -459,6 +465,7 @@
     finalScoreEl.textContent = "最终得分：" + score;
     scoreEl.style.display = "none";
     soundBtn.style.display = "none";
+    mobileCtrls.style.display = "none";
   }
 
   function restartGame() {
@@ -554,6 +561,33 @@
     restartBtn.addEventListener("click", restartGame);
     gameOverScreen.addEventListener("click", (e) => {
       if (e.target === gameOverScreen) restartGame();
+    });
+
+    // Mobile button controls
+    btnLeft.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      if (gameState === "playing") keys["ArrowLeft"] = true;
+    });
+    btnLeft.addEventListener("pointerup", (e) => {
+      e.preventDefault();
+      keys["ArrowLeft"] = false;
+    });
+    btnLeft.addEventListener("pointerleave", () => { keys["ArrowLeft"] = false; });
+
+    btnRight.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      if (gameState === "playing") keys["ArrowRight"] = true;
+    });
+    btnRight.addEventListener("pointerup", (e) => {
+      e.preventDefault();
+      keys["ArrowRight"] = false;
+    });
+    btnRight.addEventListener("pointerleave", () => { keys["ArrowRight"] = false; });
+
+    btnJump.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      if (gameState !== "playing") return;
+      if (!dino.jumping) { dino.jumping = true; dino.vy = JUMP_VEL; }
     });
 
     // Start loading
