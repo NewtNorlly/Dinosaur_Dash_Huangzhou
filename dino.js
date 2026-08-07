@@ -135,7 +135,7 @@
       }
     }
 
-    // Load images
+    // Load images — encode paths for mobile compatibility
     ASSET_LIST.forEach(({ key, path }) => {
       const img = new Image();
       img.onload = () => {
@@ -144,16 +144,45 @@
       };
       img.onerror = () => {
         console.warn("Failed to load:", path);
-        assets[key] = { img: null, w: 100, h: 100 };
-        progress();
+        // Fallback: retry with simpler encoding
+        const retry = new Image();
+        retry.onload = () => {
+          assets[key] = { img: retry, w: retry.naturalWidth, h: retry.naturalHeight };
+          progress();
+        };
+        retry.onerror = () => {
+          assets[key] = { img: null, w: 100, h: 100 };
+          progress();
+        };
+        retry.src = path; // try raw path as fallback
       };
-      img.src = path;
+      img.src = encodeURI(path);
     });
 
-    // Load audio (lazy, just mark progress)
+    // Preload audio — load both tracks into memory
     AUDIO_LIST.forEach(({ key, path }) => {
-      assets[key] = { path };
-      progress();
+      const audio = new Audio();
+      audio.preload = "auto";
+      audio.volume = 0.4;
+      audio.loop = true;
+      audio.oncanplaythrough = () => {
+        assets[key] = { audio, path };
+        progress();
+      };
+      audio.onerror = () => {
+        // Fallback: still mark as loaded, will retry on play
+        assets[key] = { path };
+        progress();
+      };
+      audio.src = encodeURI(path);
+      audio.load();
+      // Timeout: if canplaythrough doesn't fire within 8s, proceed anyway
+      setTimeout(() => {
+        if (!assets[key]) {
+          assets[key] = { audio, path };
+          progress();
+        }
+      }, 8000);
     });
   }
 
@@ -214,15 +243,24 @@
     stopBGM();
     const key = "bgm" + bgmIndex;
     const asset = assets[key];
-    if (!asset || !asset.path) return;
-    try {
+    if (!asset) return;
+
+    // Use preloaded audio if available
+    if (asset.audio) {
+      bgmAudio = asset.audio;
+      bgmAudio.currentTime = 0;
+    } else if (asset.path) {
       bgmAudio = new Audio(encodeURI(asset.path));
       bgmAudio.volume = 0.4;
       bgmAudio.loop = true;
+    } else {
+      return;
+    }
+
+    try {
       const playPromise = bgmAudio.play();
       if (playPromise) {
         playPromise.catch(() => {
-          // Autoplay blocked - will retry on next user gesture
           bgmLoaded = false;
         });
       }
