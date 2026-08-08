@@ -22,9 +22,6 @@
   const startBtn = document.getElementById("start");
   const btnMusic = document.getElementById("btn-music");
   const mobileCtrls = document.getElementById("mobile-controls");
-  const btnJump = document.getElementById("btn-jump");
-  const joyPad = document.getElementById("joystick-pad");
-  const joyNub = document.getElementById("joystick-nub");
 
   /* ── Constants ── */
   const W = 1600, H = 900;                 // logical canvas (16:9)
@@ -72,7 +69,84 @@
   let bgmAudio = null;
   let lastTime = 0;
   let keys = {};
+  let moveInput = 0;         // -1 (full left) … 1 (full right) — proportional
   let animId = null;
+
+  /* ── Dynamic joystick state (module scope for cleanup access) ── */
+  let joyPointerId = null;
+  let joyOriginX = 0;
+  let joyOriginY = 0;
+  let joyEl = null;
+  let joyNub = null;
+  const JOY_MAX_R = 48;
+  const JOY_DEAD = 8;
+  const JOY_ACTIVE = 16;
+
+  function isLeftHalf(x) {
+    return x < window.innerWidth * 0.5;
+  }
+
+  function createJoyElement(cx, cy) {
+    if (joyEl) return;
+    joyEl = document.createElement("div");
+    joyEl.className = "dyn-joy";
+    joyEl.style.left = cx + "px";
+    joyEl.style.top = cy + "px";
+    joyNub = document.createElement("div");
+    joyNub.className = "dyn-joy-nub";
+    joyEl.appendChild(joyNub);
+    mobileCtrls.appendChild(joyEl);
+    void joyEl.offsetWidth;
+    joyEl.classList.add("active");
+  }
+
+  function destroyJoyElement() {
+    if (!joyEl) return;
+    joyEl.classList.remove("active", "pushed");
+    var el = joyEl;
+    joyEl = null;
+    joyNub = null;
+    el.addEventListener("transitionend", function cleanup() {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }, { once: true });
+    setTimeout(function () {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }, 200);
+  }
+
+  function cleanupJoystick() {
+    moveInput = 0;
+    joyPointerId = null;
+    if (joyEl) {
+      var el = joyEl;
+      joyEl = null;
+      joyNub = null;
+      el.classList.remove("active", "pushed");
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }
+  }
+
+  function updateJoyNub(dx, dy) {
+    if (!joyNub) return;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    var r = Math.min(dist, JOY_MAX_R);
+    var a = Math.atan2(dy, dx);
+    var tx = Math.cos(a) * r;
+    var ty = Math.sin(a) * r;
+    joyNub.style.transform = "translate(calc(-50% + " + tx + "px), calc(-50% + " + ty + "px))";
+
+    if (dist < JOY_DEAD) {
+      moveInput = 0;
+      if (joyEl) joyEl.classList.remove("pushed");
+    } else if (Math.abs(dx) < JOY_ACTIVE) {
+      moveInput = 0;
+      if (joyEl) joyEl.classList.remove("pushed");
+    } else {
+      var raw = dx / JOY_MAX_R;
+      moveInput = Math.max(-1, Math.min(1, raw));
+      if (joyEl) joyEl.classList.add("pushed");
+    }
+  }
 
   /* ═══════════════════════════ Asset Loading ═══════════════════════════ */
 
@@ -359,13 +433,8 @@
       }
     }
 
-    // Dino horizontal movement
-    if (keys["ArrowLeft"] || keys["KeyA"]) {
-      dino.x -= MOVE_SPEED * cappedDt;
-    }
-    if (keys["ArrowRight"] || keys["KeyD"]) {
-      dino.x += MOVE_SPEED * cappedDt;
-    }
+    // Dino horizontal movement (proportional input from joystick or binary from keyboard)
+    dino.x += moveInput * MOVE_SPEED * cappedDt;
     dino.x = Math.max(0, Math.min(W - dino.w, dino.x));
 
     // Spawn obstacles
@@ -457,6 +526,7 @@
     scoreEl.style.display = "block";
     topCtrls.style.display = "";
     lastTime = 0;
+    cleanupJoystick();
     setupGame();
     playBGM();
     startScreen.hidden = true;
@@ -466,6 +536,7 @@
   function endGame() {
     gameState = "over";
     stopBGM();
+    cleanupJoystick();
     gameOverScreen.hidden = false;
     finalScoreEl.textContent = "最终得分：" + score;
     scoreEl.style.display = "none";
@@ -482,6 +553,8 @@
 
   function onKeyDown(e) {
     keys[e.code] = true;
+    if (e.code === "ArrowLeft" || e.code === "KeyA") moveInput = -1;
+    if (e.code === "ArrowRight" || e.code === "KeyD") moveInput = 1;
     if (gameState === "playing") {
       if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") {
         e.preventDefault();
@@ -506,6 +579,12 @@
 
   function onKeyUp(e) {
     keys[e.code] = false;
+    if (e.code === "ArrowLeft" || e.code === "KeyA") {
+      moveInput = keys["ArrowRight"] || keys["KeyD"] ? 1 : 0;
+    }
+    if (e.code === "ArrowRight" || e.code === "KeyD") {
+      moveInput = keys["ArrowLeft"] || keys["KeyA"] ? -1 : 0;
+    }
   }
 
   function onResize() {
@@ -519,62 +598,59 @@
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("resize", onResize);
-    // Jump button (mobile)
-    btnJump.addEventListener("pointerdown", (e) => {
+
+    // ── Dynamic Joystick (left half) + Jump (right half tap) ──
+    // State and helpers are at module scope; init just wires events.
+
+    // ── Pointer events on the fullscreen touch surface ──
+    mobileCtrls.addEventListener("pointerdown", (e) => {
+      if (gameState !== "playing") return;
       e.preventDefault();
-      if (gameState === "playing" && !dino.jumping) {
-        dino.jumping = true; dino.vy = JUMP_VEL;
+
+      if (isLeftHalf(e.clientX)) {
+        // Left half → dynamic joystick (only one joystick at a time)
+        if (joyPointerId !== null) return;
+        joyPointerId = e.pointerId;
+        joyOriginX = e.clientX;
+        joyOriginY = e.clientY;
+        createJoyElement(e.clientX, e.clientY);
+        updateJoyNub(0, 0);
+        mobileCtrls.setPointerCapture(e.pointerId);
+      } else {
+        // Right half → jump (works even when joystick is active = multi-touch)
+        if (!dino.jumping) {
+          dino.jumping = true;
+          dino.vy = JUMP_VEL;
+        }
       }
     });
 
-    // Joystick pad (mobile)
-    let joyId = null, joyBX = 0, joyBY = 0;
-    joyPad.addEventListener("pointerdown", (e) => {
+    mobileCtrls.addEventListener("pointermove", (e) => {
+      if (e.pointerId !== joyPointerId) return;
       e.preventDefault();
-      if (gameState !== "playing") return;
-      joyId = e.pointerId;
-      const rect = joyPad.getBoundingClientRect();
-      joyBX = rect.left + rect.width / 2;
-      joyBY = rect.top + rect.height / 2;
-      joyPad.classList.add("active");
-      updateNub(e.clientX, e.clientY);
-      joyPad.setPointerCapture(e.pointerId);
+      const dx = e.clientX - joyOriginX;
+      const dy = e.clientY - joyOriginY;
+      updateJoyNub(dx, dy);
     });
-    joyPad.addEventListener("pointermove", (e) => {
-      if (e.pointerId !== joyId) return;
-      e.preventDefault();
-      updateNub(e.clientX, e.clientY);
-    });
-    function updateNub(cx, cy) {
-      const dx = cx - joyBX, dy = cy - joyBY;
-      const maxR = 47;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      const r = Math.min(dist, maxR);
-      const a = Math.atan2(dy, dx);
-      const tx = Math.cos(a) * r, ty = Math.sin(a) * r;
-      joyNub.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px))`;
-      if (dx > 12) { keys["ArrowRight"] = true; keys["ArrowLeft"] = false; }
-      else if (dx < -12) { keys["ArrowLeft"] = true; keys["ArrowRight"] = false; }
-      else { keys["ArrowLeft"] = false; keys["ArrowRight"] = false; }
-    }
-    function releaseNub() {
-      joyId = null;
-      joyNub.style.transform = "translate(-50%, -50%)";
-      keys["ArrowLeft"] = false;
-      keys["ArrowRight"] = false;
-      joyPad.classList.remove("active");
-    }
-    joyPad.addEventListener("pointerup", (e) => { if (e.pointerId === joyId) releaseNub(); });
-    joyPad.addEventListener("pointercancel", (e) => { if (e.pointerId === joyId) releaseNub(); });
 
-    // Canvas fallback
+    mobileCtrls.addEventListener("pointerup", (e) => {
+      if (e.pointerId !== joyPointerId) return;
+      e.preventDefault();
+      joyPointerId = null;
+      moveInput = 0;
+      destroyJoyElement();
+    });
+
+    mobileCtrls.addEventListener("pointercancel", (e) => {
+      if (e.pointerId !== joyPointerId) return;
+      joyPointerId = null;
+      moveInput = 0;
+      destroyJoyElement();
+    });
+
+    // Prevent canvas from eating touches
     canvas.addEventListener("touchstart", (e) => { e.preventDefault(); });
     canvas.addEventListener("touchmove", (e) => { e.preventDefault(); });
-    canvas.addEventListener("mousedown", () => {
-      if (gameState === "playing" && !dino.jumping) {
-        dino.jumping = true; dino.vy = JUMP_VEL;
-      }
-    });
 
     // Audio
     soundBtn.addEventListener("pointerdown", (e) => {

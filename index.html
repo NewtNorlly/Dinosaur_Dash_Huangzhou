@@ -6,7 +6,7 @@
   <meta name="description" content="恐龙快跑（黄州府）——穿越黄州名胜古迹的跑酷小游戏">
   <meta name="theme-color" content="#0a0f1a">
   <title>恐龙快跑（黄州府）</title>
-  <link rel="stylesheet" href="dino.css?v=20260808e">
+  <link rel="stylesheet" href="dino.css?v=20260808f">
   <link rel="icon" type="image/png" href="game/assets/小恐龙-removebg-preview.webp">
 </head>
 <body>
@@ -43,8 +43,8 @@
       </div>
       <div class="ctrl-section">
         <p class="ctrl-section-title">📱 手机 &amp; 平板</p>
-        <div class="key-row"><span class="dot dot--left"></span><span>左半屏点按 → 跳跃</span></div>
-        <div class="key-row"><span class="dot dot--right"></span><span>右半屏滑动 → 摇杆移动</span></div>
+        <div class="key-row"><span class="dot dot--left"></span><span>左半屏 → 动态摇杆移动</span></div>
+        <div class="key-row"><span class="dot dot--right"></span><span>右半屏点按 → 跳跃</span></div>
         <div class="key-row key-row--top"><button class="icon-hint">🔊</button><button class="icon-hint">🎵</button><span>右上角两个按钮控制音乐</span></div>
       </div>
     </div>
@@ -57,18 +57,9 @@
     <button id="restart" class="btn">再来一局</button>
   </div>
 
-  <!-- Mobile controls -->
-  <div id="mobile-controls" class="mobile-ctrl">
-    <button id="btn-jump" class="mbtn mbtn--jump" aria-label="跳跃">
-      <span class="mbtn-icon">▲</span>
-      <span class="mbtn-label">跳跃</span>
-    </button>
-    <div id="joystick-pad" class="joystick-pad">
-      <div class="joystick-ring"></div>
-      <div id="joystick-nub" class="joystick-nub"></div>
-    </div>
-  </div>
+  <!-- Mobile touch surface (fullscreen, handles dynamic joystick + jump) -->
+  <div id="mobile-controls" class="mobile-ctrl"></div>
 
-  <script src="dino.js?v=20260808d"></script>
+  <script src="dino.js?v=20260808e"></script>
 </body>
 </html>
