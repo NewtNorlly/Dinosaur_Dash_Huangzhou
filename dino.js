@@ -482,7 +482,7 @@
     requestAnimationFrame(() => {
       startScreen.hidden = true;
       requestAnimationFrame(() => {
-        if (gameState === "playing") mobileCtrls.style.display = "";
+        if (gameState === "playing") mobileCtrls.style.display = "block";
       });
     });
   }
@@ -545,6 +545,12 @@
     window.addEventListener("resize", onResize);
     canvas.addEventListener("touchstart", (e) => { e.preventDefault(); });
     canvas.addEventListener("touchmove", (e) => { e.preventDefault(); });
+    // Desktop click on canvas = jump
+    canvas.addEventListener("mousedown", (e) => {
+      if (gameState === "playing" && !dino.jumping) {
+        dino.jumping = true; dino.vy = JUMP_VEL;
+      }
+    });
     soundBtn.addEventListener("click", toggleSound);
     startBtn.addEventListener("pointerdown", (e) => {
       e.preventDefault();
