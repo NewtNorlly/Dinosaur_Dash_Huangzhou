@@ -322,6 +322,7 @@
   }
 
   function cycleBGM() {
+    stopBGM();
     bgmIndex = (bgmIndex + 1) % 2;
     if (soundOn && gameState === "playing") {
       playBGM();
