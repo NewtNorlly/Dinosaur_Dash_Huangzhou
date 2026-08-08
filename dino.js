@@ -73,6 +73,7 @@
   let bgmAudio = null;
   let lastTime = 0;
   let keys = {};
+  let activeTouchId = null, joyBaseX = 0, joyBaseY = 0;
   let animId = null;
 
   /* ═══════════════════════════ Asset Loading ═══════════════════════════ */
@@ -238,16 +239,24 @@
     const asset = assets[key];
     if (!asset) return;
 
-    // Prefer blob URL (fully downloaded, instant), fallback to raw path
-    const src = asset.blobUrl || (asset.path ? encodeURI(asset.path) : null);
+    // Use blob URL if preloaded, otherwise direct path
+    const src = asset.blobUrl || encodeURI(asset.path);
     if (!src) return;
 
     bgmAudio = new Audio(src);
     bgmAudio.volume = 0.4;
     bgmAudio.loop = true;
-    try {
-      bgmAudio.play();
-    } catch (e) { /* blocked */ }
+    // Play within user gesture context (called from button click)
+    bgmAudio.play().catch(() => {
+      // Retry without blob - some mobile browsers have blob restrictions
+      if (asset.path) {
+        stopBGM();
+        bgmAudio = new Audio(encodeURI(asset.path));
+        bgmAudio.volume = 0.4;
+        bgmAudio.loop = true;
+        bgmAudio.play().catch(() => {});
+      }
+    });
   }
 
   function stopBGM() {
@@ -543,10 +552,61 @@
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("resize", onResize);
-    canvas.addEventListener("touchstart", (e) => { e.preventDefault(); });
-    canvas.addEventListener("touchmove", (e) => { e.preventDefault(); });
-    // Desktop click on canvas = jump
-    canvas.addEventListener("mousedown", (e) => {
+    // Touch controls on canvas — left half = jump, right half = joystick
+    canvas.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      if (gameState !== "playing") return;
+      for (const t of e.changedTouches) {
+        const x = t.clientX;
+        if (x < window.innerWidth / 2) {
+          if (!dino.jumping) { dino.jumping = true; dino.vy = JUMP_VEL; }
+        } else {
+          activeTouchId = t.identifier;
+          joyBaseX = x; joyBaseY = t.clientY;
+          joystick.hidden = false;
+          joystick.style.left = x + "px";
+          joystick.style.top = t.clientY + "px";
+          joystickThumb.style.transform = "translate(-50%, -50%)";
+          zoneMove.classList.add("active");
+        }
+      }
+    }, { passive: false });
+
+    canvas.addEventListener("touchmove", (e) => {
+      e.preventDefault();
+      if (activeTouchId === null) return;
+      for (const t of e.changedTouches) {
+        if (t.identifier !== activeTouchId) continue;
+        const dx = t.clientX - joyBaseX;
+        const dy = t.clientY - joyBaseY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const maxR = 55;
+        const clamp = Math.min(dist, maxR) / (dist || 1);
+        const tx = dx * clamp;
+        const ty = dy * clamp;
+        joystickThumb.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px))`;
+        if (dx > 14) { keys["ArrowRight"] = true; keys["ArrowLeft"] = false; }
+        else if (dx < -14) { keys["ArrowLeft"] = true; keys["ArrowRight"] = false; }
+        else { keys["ArrowLeft"] = false; keys["ArrowRight"] = false; }
+      }
+    }, { passive: false });
+
+    function releaseJoy() {
+      joystick.hidden = true;
+      activeTouchId = null;
+      keys["ArrowLeft"] = false;
+      keys["ArrowRight"] = false;
+      zoneMove.classList.remove("active");
+    }
+    canvas.addEventListener("touchend", (e) => {
+      for (const t of e.changedTouches) {
+        if (t.identifier === activeTouchId) releaseJoy();
+      }
+    });
+    canvas.addEventListener("touchcancel", () => releaseJoy());
+
+    // Desktop: click canvas to jump
+    canvas.addEventListener("mousedown", () => {
       if (gameState === "playing" && !dino.jumping) {
         dino.jumping = true; dino.vy = JUMP_VEL;
       }
@@ -560,67 +620,6 @@
     restartBtn.addEventListener("click", restartGame);
     gameOverScreen.addEventListener("click", (e) => {
       if (e.target === gameOverScreen) restartGame();
-    });
-
-    // Mobile touch zones — left zone = jump, right zone = joystick
-    let joystickId = null, joystickBaseX = 0, joystickBaseY = 0;
-
-    zoneJump.addEventListener("pointerdown", (e) => {
-      e.preventDefault();
-      if (gameState === "playing" && !dino.jumping) {
-        dino.jumping = true; dino.vy = JUMP_VEL;
-      }
-    });
-
-    zoneMove.addEventListener("pointerdown", (e) => {
-      e.preventDefault();
-      if (gameState !== "playing") return;
-      joystickId = e.pointerId;
-      joystickBaseX = e.clientX;
-      joystickBaseY = e.clientY;
-      joystick.hidden = false;
-      joystick.style.left = joystickBaseX + "px";
-      joystick.style.top = joystickBaseY + "px";
-      joystickThumb.style.transform = "translate(-50%, -50%)";
-      zoneMove.classList.add("active");
-      zoneMove.setPointerCapture(e.pointerId);
-    });
-
-    zoneMove.addEventListener("pointermove", (e) => {
-      if (e.pointerId !== joystickId) return;
-      e.preventDefault();
-      const dx = e.clientX - joystickBaseX;
-      const dy = e.clientY - joystickBaseY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      const maxR = 55;
-      const clampDist = Math.min(dist, maxR);
-      const angle = Math.atan2(dy, dx);
-      const tx = Math.cos(angle) * clampDist;
-      const ty = Math.sin(angle) * clampDist;
-      joystickThumb.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px))`;
-      // Horizontal movement only
-      const threshold = 12;
-      if (dx > threshold) { keys["ArrowRight"] = true; keys["ArrowLeft"] = false; }
-      else if (dx < -threshold) { keys["ArrowLeft"] = true; keys["ArrowRight"] = false; }
-      else { keys["ArrowLeft"] = false; keys["ArrowRight"] = false; }
-    });
-
-    function releaseJoystick() {
-      joystick.hidden = true;
-      joystickId = null;
-      keys["ArrowLeft"] = false;
-      keys["ArrowRight"] = false;
-      zoneMove.classList.remove("active");
-    }
-
-    zoneMove.addEventListener("pointerup", (e) => {
-      if (e.pointerId === joystickId) releaseJoystick();
-    });
-    zoneMove.addEventListener("pointercancel", (e) => {
-      if (e.pointerId === joystickId) releaseJoystick();
-    });
-    zoneMove.addEventListener("pointerleave", () => {
-      // Don't release on leave — user might drag outside the zone
     });
 
     btnMusic.addEventListener("pointerdown", (e) => {
