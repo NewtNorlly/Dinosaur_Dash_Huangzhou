@@ -186,8 +186,9 @@
   ];
 
   const AUDIO_LIST = [
-    { key: "bgm0", path: "bgm/又见炊烟 - 邓丽君.mp3" },
-    { key: "bgm1", path: "bgm/望春风 - 陈佳.mp3" },
+    { key: "bgm0", path: "bgm/white-cat.mp3" },
+    { key: "bgm1", path: "bgm/又见炊烟 - 邓丽君.mp3" },
+    { key: "bgm2", path: "bgm/望春风 - 陈佳.mp3" },
   ];
 
   function loadAssets() {
@@ -324,7 +325,7 @@
 
   function cycleBGM() {
     stopBGM();
-    bgmIndex = (bgmIndex + 1) % 2;
+    bgmIndex = (bgmIndex + 1) % 3;
     if (soundOn && gameState === "playing") {
       playBGM();
     }
