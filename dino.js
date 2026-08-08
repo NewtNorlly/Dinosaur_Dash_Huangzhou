@@ -80,7 +80,8 @@
   let joyNub = null;
   const JOY_MAX_R = 48;
   const JOY_DEAD = 8;
-  const JOY_ACTIVE = 16;
+  const JOY_ACTIVE = 10;
+  const JOY_SPEED_BOOST = 1.7;   // makes 28px of thumb travel = full speed
 
   function isLeftHalf(x) {
     return x < window.innerWidth * 0.5;
@@ -142,7 +143,7 @@
       moveInput = 0;
       if (joyEl) joyEl.classList.remove("pushed");
     } else {
-      var raw = dx / JOY_MAX_R;
+      var raw = dx / JOY_MAX_R * JOY_SPEED_BOOST;
       moveInput = Math.max(-1, Math.min(1, raw));
       if (joyEl) joyEl.classList.add("pushed");
     }
