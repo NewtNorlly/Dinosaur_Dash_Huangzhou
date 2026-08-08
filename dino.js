@@ -134,7 +134,7 @@
       }
     }
 
-    // Load images — encode paths for mobile compatibility
+    // Load images — try raw path first (works on local/GitHub), fallback to encoded
     ASSET_LIST.forEach(({ key, path }) => {
       const img = new Image();
       img.onload = () => {
@@ -142,20 +142,19 @@
         progress();
       };
       img.onerror = () => {
-        console.warn("Failed to load:", path);
-        // Fallback: retry with simpler encoding
-        const retry = new Image();
-        retry.onload = () => {
-          assets[key] = { img: retry, w: retry.naturalWidth, h: retry.naturalHeight };
+        // Retry with encoded path (for mobile browsers with strict URL handling)
+        const enc = new Image();
+        enc.onload = () => {
+          assets[key] = { img: enc, w: enc.naturalWidth, h: enc.naturalHeight };
           progress();
         };
-        retry.onerror = () => {
+        enc.onerror = () => {
           assets[key] = { img: null, w: 100, h: 100 };
           progress();
         };
-        retry.src = path; // try raw path as fallback
+        enc.src = encodeURI(path);
       };
-      img.src = encodeURI(path);
+      img.src = path;
     });
 
     // Preload audio paths only — play on demand
