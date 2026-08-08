@@ -487,7 +487,7 @@
     topCtrls.style.display = "";
     lastTime = 0;
     setupGame();
-    if (soundOn) playBGM();
+    playBGM();
     requestAnimationFrame(() => {
       startScreen.hidden = true;
       requestAnimationFrame(() => {
@@ -612,12 +612,21 @@
       }
     });
     soundBtn.addEventListener("click", toggleSound);
-    startBtn.addEventListener("pointerdown", (e) => {
+
+    // Start game: button click OR tap anywhere on start screen
+    function tryStart(e) {
+      if (gameState !== "start") return;
       e.preventDefault();
-      e.stopPropagation();
       startGame();
+    }
+    startBtn.addEventListener("click", tryStart);
+    startBtn.addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); startGame(); });
+    startScreen.addEventListener("click", (e) => {
+      // Only if clicking the overlay background, not the controls card (allow text selection)
+      if (e.target === startScreen || e.target.classList.contains("sub")) startGame();
     });
     restartBtn.addEventListener("click", restartGame);
+    restartBtn.addEventListener("pointerdown", (e) => { e.preventDefault(); restartGame(); });
     gameOverScreen.addEventListener("click", (e) => {
       if (e.target === gameOverScreen) restartGame();
     });
