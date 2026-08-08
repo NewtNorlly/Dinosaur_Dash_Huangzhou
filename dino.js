@@ -225,7 +225,8 @@
     bgmAudio = new Audio(encodeURI(asset.path));
     bgmAudio.volume = 0.4;
     bgmAudio.loop = true;
-    bgmAudio.play().catch(() => {});
+    var p = bgmAudio.play();
+    if (p && typeof p.catch === "function") p.catch(function() {});
   }
 
   function stopBGM() {
@@ -612,6 +613,10 @@
     // Initial background draw
     ctx.fillStyle = SKY_COLOR;
     ctx.fillRect(0, 0, W, H);
+
+    // Debug exposure
+    window.__startGame = startGame;
+    window.__endGame = endGame;
   }
 
   // Go!
