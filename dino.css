@@ -174,86 +174,57 @@ canvas {
 .dot--left  { background: rgba(120,200,255,0.5); }
 .dot--right { background: rgba(255,180,100,0.5); }
 
-/* ── Mobile touch zones ── */
+/* ── Mobile visible controls ── */
 .mobile-ctrl {
   display: none;
   position: fixed; inset: 0; z-index: 55;
   pointer-events: none;
 }
-.mobile-ctrl {
-  display: none;
-  position: fixed; inset: 0; z-index: 55;
-  pointer-events: none;
-}
-.touch-zone {
-  position: absolute; top: 0; bottom: 0;
+
+/* Jump button — bottom left */
+.mbtn {
   pointer-events: auto;
-  display: flex; align-items: center; justify-content: center;
+  border: none; border-radius: 50%;
+  background: rgba(255,255,255,0.16);
+  backdrop-filter: blur(6px);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  position: absolute;
+  bottom: 40px; left: 36px;
 }
-.touch-zone--left  { left: 0; right: 50%; }
-.touch-zone--right { left: 50%; right: 0; }
+.mbtn--jump {
+  width: 80px; height: 80px;
+  border: 2px solid rgba(255,255,255,0.28);
+  box-shadow: 0 0 24px rgba(255,255,255,0.06);
+}
+.mbtn:active { background: rgba(255,255,255,0.30); transform: scale(0.93); }
+.mbtn-icon { font-size: 32px; color: rgba(255,255,255,0.78); line-height: 1; }
+.mbtn-label { font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 2px; }
 
-.zone-badge {
-  width: 72px; height: 72px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.20);
-  border: 2px solid rgba(255,255,255,0.35);
-  color: rgba(255,255,255,0.82);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 30px;
-  pointer-events: none;
+/* Joystick pad — bottom right */
+.joystick-pad {
+  pointer-events: auto;
   position: absolute;
-  bottom: 72px;
-  transition: opacity 0.2s, transform 0.1s;
-  box-shadow: 0 0 28px rgba(255,255,255,0.08);
+  bottom: 36px; right: 32px;
+  width: 120px; height: 120px;
 }
-.zone-badge::after {
-  content: attr(data-label);
-  position: absolute;
-  bottom: -24px;
-  font-size: 13px; font-weight: 500;
-  color: rgba(255,255,255,0.55);
-  white-space: nowrap;
-  font-family: "PingFang SC","Microsoft YaHei",sans-serif;
-}
-.zone-badge--move {
-  font-size: 26px;
-}
-.touch-zone--left  .zone-badge { left: 22%; transform: translateX(-50%); }
-.touch-zone--right .zone-badge { right: 22%; transform: translateX(50%); }
-.touch-zone.active .zone-badge {
-  opacity: 0.7;
-  background: rgba(255,255,255,0.30);
-}
-.touch-zone--left.active .zone-badge {
-  transform: translateX(-50%) scale(0.92);
-}
-.touch-zone--right.active .zone-badge {
-  transform: translateX(50%) scale(0.92);
-}
-
-/* Joystick */
-.joystick {
-  position: absolute;
-  pointer-events: none;
-  width: 140px; height: 140px;
-  transform: translate(-50%, -50%);
-}
-.joystick[hidden] { display: none; }
-.joystick-base {
+.joystick-ring {
   position: absolute; inset: 0;
   border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.22);
-  background: rgba(255,255,255,0.07);
+  border: 2.5px solid rgba(255,255,255,0.28);
+  background: rgba(255,255,255,0.08);
+  box-shadow: 0 0 24px rgba(255,255,255,0.06);
 }
-.joystick-thumb {
+.joystick-nub {
   position: absolute;
-  width: 56px; height: 56px;
+  width: 50px; height: 50px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.28);
+  background: rgba(255,255,255,0.25);
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  box-shadow: 0 0 16px rgba(255,255,255,0.08);
+  transition: none;
 }
 
 #final-score {
