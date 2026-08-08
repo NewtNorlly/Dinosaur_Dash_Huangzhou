@@ -536,6 +536,7 @@
       const rect = joyPad.getBoundingClientRect();
       joyBX = rect.left + rect.width / 2;
       joyBY = rect.top + rect.height / 2;
+      joyPad.classList.add("active");
       updateNub(e.clientX, e.clientY);
       joyPad.setPointerCapture(e.pointerId);
     });
@@ -546,7 +547,7 @@
     });
     function updateNub(cx, cy) {
       const dx = cx - joyBX, dy = cy - joyBY;
-      const maxR = 35;
+      const maxR = 47;
       const dist = Math.sqrt(dx * dx + dy * dy);
       const r = Math.min(dist, maxR);
       const a = Math.atan2(dy, dx);
@@ -561,6 +562,7 @@
       joyNub.style.transform = "translate(-50%, -50%)";
       keys["ArrowLeft"] = false;
       keys["ArrowRight"] = false;
+      joyPad.classList.remove("active");
     }
     joyPad.addEventListener("pointerup", (e) => { if (e.pointerId === joyId) releaseNub(); });
     joyPad.addEventListener("pointercancel", (e) => { if (e.pointerId === joyId) releaseNub(); });

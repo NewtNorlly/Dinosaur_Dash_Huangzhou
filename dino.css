@@ -182,50 +182,123 @@ canvas {
   pointer-events: none;
 }
 
-/* Jump button — bottom left */
+/* ═══ Jump button — bottom left ═══ */
 .mbtn {
   pointer-events: auto;
-  border: none; border-radius: 50%;
-  background: rgba(255,255,255,0.16);
-  backdrop-filter: blur(6px);
+  border: none;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   position: absolute;
-  bottom: 40px; left: 36px;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 .mbtn--jump {
-  width: 80px; height: 80px;
-  border: 2px solid rgba(255,255,255,0.28);
-  box-shadow: 0 0 24px rgba(255,255,255,0.06);
+  width: 96px; height: 96px;
+  bottom: max(32px, env(safe-area-inset-bottom, 32px));
+  left: max(28px, env(safe-area-inset-left, 28px));
+  border-radius: 50%;
+  border: 2.5px solid rgba(255,193,80,0.45);
+  background: radial-gradient(circle at 40% 35%,
+    rgba(255,193,80,0.28) 0%,
+    rgba(200,120,30,0.18) 60%,
+    rgba(80,40,10,0.25) 100%
+  );
+  box-shadow:
+    0 0 28px rgba(255,160,40,0.18),
+    0 4px 16px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.08);
 }
-.mbtn:active { background: rgba(255,255,255,0.30); transform: scale(0.93); }
-.mbtn-icon { font-size: 32px; color: rgba(255,255,255,0.78); line-height: 1; }
-.mbtn-label { font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 2px; }
+.mbtn--jump:active {
+  transform: scale(0.9);
+  background: radial-gradient(circle at 40% 35%,
+    rgba(255,210,100,0.42) 0%,
+    rgba(220,140,40,0.28) 60%,
+    rgba(100,50,15,0.35) 100%
+  );
+  box-shadow:
+    0 0 44px rgba(255,160,40,0.32),
+    0 2px 8px rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.12);
+}
+.mbtn-icon {
+  font-size: 38px;
+  color: rgba(255,220,140,0.9);
+  line-height: 1;
+  text-shadow: 0 0 10px rgba(255,180,60,0.5);
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
+}
+.mbtn-label {
+  font-size: 12px; font-weight: 600;
+  color: rgba(255,200,130,0.65);
+  margin-top: 1px;
+  letter-spacing: 0.06em;
+}
 
-/* Joystick pad — bottom right */
+/* ═══ Joystick pad — bottom right ═══ */
 .joystick-pad {
   pointer-events: auto;
   position: absolute;
-  bottom: 36px; right: 32px;
-  width: 120px; height: 120px;
+  bottom: max(28px, env(safe-area-inset-bottom, 28px));
+  right: max(24px, env(safe-area-inset-right, 24px));
+  width: 150px; height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%,
+    rgba(255,255,255,0.06) 0%,
+    rgba(255,255,255,0.03) 60%,
+    rgba(0,0,0,0.15) 100%
+  );
+  border: 2px solid rgba(255,255,255,0.16);
+  box-shadow:
+    0 0 32px rgba(255,255,255,0.04),
+    0 4px 18px rgba(0,0,0,0.3),
+    inset 0 0 20px rgba(255,255,255,0.03);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.joystick-pad.active {
+  border-color: rgba(180,210,255,0.35);
+  box-shadow:
+    0 0 42px rgba(140,180,240,0.1),
+    0 4px 18px rgba(0,0,0,0.3),
+    inset 0 0 28px rgba(180,210,255,0.08);
 }
 .joystick-ring {
-  position: absolute; inset: 0;
-  border-radius: 50%;
-  border: 2.5px solid rgba(255,255,255,0.28);
-  background: rgba(255,255,255,0.08);
-  box-shadow: 0 0 24px rgba(255,255,255,0.06);
+  display: none; /* replaced by joystick-pad itself */
 }
 .joystick-nub {
   position: absolute;
-  width: 50px; height: 50px;
+  width: 56px; height: 56px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.25);
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  transition: none;
+  background: radial-gradient(circle at 42% 38%,
+    rgba(220,235,255,0.45) 0%,
+    rgba(160,190,230,0.32) 40%,
+    rgba(100,130,180,0.22) 100%
+  );
+  border: 1.5px solid rgba(255,255,255,0.2);
+  box-shadow:
+    0 0 18px rgba(150,190,240,0.2),
+    0 3px 10px rgba(0,0,0,0.3),
+    inset 0 2px 4px rgba(255,255,255,0.15);
+  transition: box-shadow 0.15s ease;
+}
+/* Nub direction indicator — small bright dot (inspired by touchockey red tip) */
+.joystick-nub::after {
+  content: '';
+  position: absolute;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.7);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 8px rgba(200,220,255,0.6);
+}
+.joystick-pad.active .joystick-nub {
+  box-shadow:
+    0 0 28px rgba(160,200,255,0.35),
+    0 3px 10px rgba(0,0,0,0.3),
+    inset 0 2px 4px rgba(255,255,255,0.2);
 }
 
 #final-score {
