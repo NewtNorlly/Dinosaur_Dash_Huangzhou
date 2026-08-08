@@ -217,7 +217,9 @@
   /* ═══════════════════════════ Audio ═══════════════════════════ */
 
   function playBGM() {
+    if (bgmAudio && !bgmAudio.paused) return;
     stopBGM();
+    if (!soundOn) return;
     const key = "bgm" + bgmIndex;
     const asset = assets[key];
     if (!asset || !asset.path) return;
@@ -457,12 +459,8 @@
     lastTime = 0;
     setupGame();
     playBGM();
-    requestAnimationFrame(() => {
-      startScreen.hidden = true;
-      requestAnimationFrame(() => {
-        if (gameState === "playing") mobileCtrls.style.display = "block";
-      });
-    });
+    startScreen.hidden = true;
+    mobileCtrls.style.display = "block";
   }
 
   function endGame() {
@@ -577,10 +575,18 @@
     });
 
     // Audio
+    soundBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleSound();
+    });
 
     // Start game: button click OR tap anywhere on start screen
     function tryStart(e) {
-      if (gameState !== "start") return;
+      if (gameState !== "start") {
+        if (gameState === "playing" && soundOn) playBGM();
+        return;
+      }
       e.preventDefault();
       startGame();
     }
