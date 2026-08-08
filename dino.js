@@ -20,10 +20,10 @@
   const finalScoreEl = document.getElementById("final-score");
   const restartBtn = document.getElementById("restart");
   const startBtn = document.getElementById("start");
-  const btnLeft = document.getElementById("btn-left");
-  const btnRight = document.getElementById("btn-right");
-  const btnJumpL = document.getElementById("btn-jump-left");
-  const btnJumpR = document.getElementById("btn-jump-right");
+  const zoneJump = document.getElementById("zone-jump");
+  const zoneMove = document.getElementById("zone-move");
+  const joystick = document.getElementById("joystick");
+  const joystickThumb = document.getElementById("joystick-thumb");
   const btnMusic = document.getElementById("btn-music");
   const mobileCtrls = document.getElementById("mobile-controls");
 
@@ -556,31 +556,66 @@
       if (e.target === gameOverScreen) restartGame();
     });
 
-    // Mobile button controls — jump buttons only jump, dir buttons only move
-    function bindDirBtn(btn, dirKey) {
-      btn.addEventListener("pointerdown", (e) => {
-        e.preventDefault();
-        if (gameState === "playing") keys[dirKey] = true;
-      });
-      btn.addEventListener("pointerup", (e) => {
-        e.preventDefault();
-        keys[dirKey] = false;
-      });
-      btn.addEventListener("pointerleave", () => { keys[dirKey] = false; });
-      btn.addEventListener("pointercancel", () => { keys[dirKey] = false; });
+    // Mobile touch zones — left zone = jump, right zone = joystick
+    let joystickId = null, joystickBaseX = 0, joystickBaseY = 0;
+
+    zoneJump.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      if (gameState === "playing" && !dino.jumping) {
+        dino.jumping = true; dino.vy = JUMP_VEL;
+      }
+    });
+
+    zoneMove.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      if (gameState !== "playing") return;
+      joystickId = e.pointerId;
+      joystickBaseX = e.clientX;
+      joystickBaseY = e.clientY;
+      joystick.hidden = false;
+      joystick.style.left = joystickBaseX + "px";
+      joystick.style.top = joystickBaseY + "px";
+      joystickThumb.style.transform = "translate(-50%, -50%)";
+      zoneMove.classList.add("active");
+      zoneMove.setPointerCapture(e.pointerId);
+    });
+
+    zoneMove.addEventListener("pointermove", (e) => {
+      if (e.pointerId !== joystickId) return;
+      e.preventDefault();
+      const dx = e.clientX - joystickBaseX;
+      const dy = e.clientY - joystickBaseY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const maxR = 55;
+      const clampDist = Math.min(dist, maxR);
+      const angle = Math.atan2(dy, dx);
+      const tx = Math.cos(angle) * clampDist;
+      const ty = Math.sin(angle) * clampDist;
+      joystickThumb.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px))`;
+      // Horizontal movement only
+      const threshold = 12;
+      if (dx > threshold) { keys["ArrowRight"] = true; keys["ArrowLeft"] = false; }
+      else if (dx < -threshold) { keys["ArrowLeft"] = true; keys["ArrowRight"] = false; }
+      else { keys["ArrowLeft"] = false; keys["ArrowRight"] = false; }
+    });
+
+    function releaseJoystick() {
+      joystick.hidden = true;
+      joystickId = null;
+      keys["ArrowLeft"] = false;
+      keys["ArrowRight"] = false;
+      zoneMove.classList.remove("active");
     }
-    function bindJumpBtn(btn) {
-      btn.addEventListener("pointerdown", (e) => {
-        e.preventDefault();
-        if (gameState === "playing" && !dino.jumping) {
-          dino.jumping = true; dino.vy = JUMP_VEL;
-        }
-      });
-    }
-    bindDirBtn(btnLeft, "ArrowLeft");
-    bindDirBtn(btnRight, "ArrowRight");
-    bindJumpBtn(btnJumpL);
-    bindJumpBtn(btnJumpR);
+
+    zoneMove.addEventListener("pointerup", (e) => {
+      if (e.pointerId === joystickId) releaseJoystick();
+    });
+    zoneMove.addEventListener("pointercancel", (e) => {
+      if (e.pointerId === joystickId) releaseJoystick();
+    });
+    zoneMove.addEventListener("pointerleave", () => {
+      // Don't release on leave — user might drag outside the zone
+    });
 
     btnMusic.addEventListener("pointerdown", (e) => {
       e.preventDefault();

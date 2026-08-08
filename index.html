@@ -33,18 +33,21 @@
   <div id="startscreen" class="overlay">
     <h1>恐龙快跑</h1>
     <p class="sub">黄州府</p>
-    <button id="start" class="btn">开始游戏</button>
+    <button id="start" class="btn">开 始 游 戏</button>
     <div class="controls-card">
-      <p class="controls-title">🎮 操作说明</p>
-      <div class="controls-grid">
-        <div class="ctrl"><kbd>空格</kbd><kbd>↑</kbd><span>跳跃</span></div>
-        <div class="ctrl"><kbd>←</kbd><kbd>→</kbd><span>左右移动</span></div>
-        <div class="ctrl"><kbd>M</kbd><span>切换音乐</span></div>
+      <div class="ctrl-section">
+        <p class="ctrl-section-title">⌨️ 电脑端</p>
+        <div class="key-row"><kbd>空格</kbd><kbd>↑</kbd><span>跳跃</span></div>
+        <div class="key-row"><kbd>←</kbd><kbd>→</kbd><span>左右移动</span></div>
+        <div class="key-row key-row--top"><kbd>M</kbd><span>切歌</span><button class="icon-hint">🔊</button><span>音乐开关</span></div>
       </div>
-      <p class="controls-mobile">📱 手机/平板：屏幕底部有虚拟按键，点击操作</p>
+      <div class="ctrl-section">
+        <p class="ctrl-section-title">📱 手机 &amp; 平板</p>
+        <div class="key-row"><span class="dot dot--left"></span><span>左半屏点按 → 跳跃</span></div>
+        <div class="key-row"><span class="dot dot--right"></span><span>右半屏滑动 → 摇杆移动</span></div>
+        <div class="key-row key-row--top"><button class="icon-hint">🔊</button><button class="icon-hint">🎵</button><span>右上角两个按钮控制音乐</span></div>
       </div>
     </div>
-  </div>
 
   <!-- Game over -->
   <div id="gameover" class="overlay" hidden>
@@ -53,15 +56,17 @@
     <button id="restart" class="btn">再来一局</button>
   </div>
 
-  <!-- Mobile controls -->
+  <!-- Mobile touch zones -->
   <div id="mobile-controls" class="mobile-ctrl">
-    <div class="ctrl-group">
-      <button id="btn-jump-left" class="ctrl-btn ctrl-btn--jump" aria-label="跳跃"><span>▲</span></button>
-      <button id="btn-left" class="ctrl-btn ctrl-btn--dir" aria-label="左移"><span>◀</span></button>
+    <div id="zone-jump" class="touch-zone touch-zone--left">
+      <div class="zone-badge">▲</div>
     </div>
-    <div class="ctrl-group">
-      <button id="btn-jump-right" class="ctrl-btn ctrl-btn--jump" aria-label="跳跃"><span>▲</span></button>
-      <button id="btn-right" class="ctrl-btn ctrl-btn--dir" aria-label="右移"><span>▶</span></button>
+    <div id="zone-move" class="touch-zone touch-zone--right">
+      <div class="zone-badge zone-badge--move">◎</div>
+      <div id="joystick" class="joystick" hidden>
+        <div id="joystick-base" class="joystick-base"></div>
+        <div id="joystick-thumb" class="joystick-thumb"></div>
+      </div>
     </div>
   </div>
 
