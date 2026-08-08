@@ -84,17 +84,20 @@ canvas {
   backdrop-filter: blur(8px);
   color: #e8edf2;
   text-align: center;
+  padding: 20px;
+  overflow-y: auto;
 }
 .overlay[hidden] { display: none; }
 
 .overlay h1 {
-  font-size: clamp(36px, 8vw, 72px);
+  font-size: clamp(28px, 8vw, 72px);
   font-weight: 700; letter-spacing: 0.06em;
-  margin-bottom: 8px;
+  margin: 0 0 4px;
+  line-height: 1.1;
 }
 .overlay .sub {
-  font-size: clamp(16px, 3vw, 24px);
-  color: #8395a7; margin-bottom: 36px;
+  font-size: clamp(14px, 3vw, 24px);
+  color: #8395a7; margin-bottom: 24px;
 }
 .overlay .btn {
   padding: 14px 48px;
@@ -116,18 +119,19 @@ canvas {
 
 /* ── Controls card ── */
 .controls-card {
-  margin-top: 36px;
-  padding: 24px 28px;
+  margin-top: 28px;
+  padding: 20px 22px;
   border: 1px solid rgba(255,255,255,0.12);
   border-radius: 16px;
   background: rgba(255,255,255,0.04);
   backdrop-filter: blur(6px);
-  max-width: 520px;
-  display: flex; flex-wrap: wrap; gap: 20px 32px;
+  max-width: 500px;
+  width: 90vw;
+  display: flex; flex-wrap: wrap; gap: 16px 24px;
   justify-content: center;
 }
 .ctrl-section {
-  flex: 1 1 200px; min-width: 180px;
+  flex: 1 1 180px; min-width: 160px;
 }
 .ctrl-section-title {
   font-size: 15px; font-weight: 600;
@@ -187,42 +191,63 @@ canvas {
 .touch-zone--right { left: 50%; right: 0; }
 
 .zone-badge {
-  width: 52px; height: 52px;
+  width: 68px; height: 68px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.10);
-  color: rgba(255,255,255,0.40);
+  background: rgba(255,255,255,0.18);
+  border: 2px solid rgba(255,255,255,0.30);
+  color: rgba(255,255,255,0.75);
   display: flex; align-items: center; justify-content: center;
-  font-size: 22px;
+  font-size: 28px;
   pointer-events: none;
   position: absolute;
-  bottom: 36px;
-  transition: opacity 0.3s;
+  bottom: 60px;
+  transition: opacity 0.2s, transform 0.1s;
+  box-shadow: 0 0 24px rgba(255,255,255,0.06);
 }
-.touch-zone--left  .zone-badge { left: 50%; transform: translateX(-50%); }
-.touch-zone--right .zone-badge { right: 50%; transform: translateX(50%); }
-.touch-zone.active .zone-badge { opacity: 0.3; }
+.zone-badge::after {
+  content: attr(data-label);
+  position: absolute;
+  bottom: -22px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.45);
+  white-space: nowrap;
+  font-family: "PingFang SC","Microsoft YaHei",sans-serif;
+}
+.zone-badge--move {
+  font-size: 24px;
+}
+.touch-zone--left  .zone-badge { left: 28%; transform: translateX(-50%); }
+.touch-zone--right .zone-badge { right: 28%; transform: translateX(50%); }
+.touch-zone.active .zone-badge {
+  opacity: 0.7;
+  transform: translateX(-50%) scale(0.92);
+}
+.touch-zone--right.active .zone-badge {
+  transform: translateX(50%) scale(0.92);
+}
 
 /* Joystick */
 .joystick {
   position: absolute;
   pointer-events: none;
-  width: 130px; height: 130px;
+  width: 140px; height: 140px;
   transform: translate(-50%, -50%);
 }
 .joystick[hidden] { display: none; }
 .joystick-base {
   position: absolute; inset: 0;
   border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.18);
-  background: rgba(255,255,255,0.06);
+  border: 2px solid rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.07);
 }
 .joystick-thumb {
   position: absolute;
-  width: 52px; height: 52px;
+  width: 56px; height: 56px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.28);
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
+  box-shadow: 0 0 16px rgba(255,255,255,0.08);
 }
 
 #final-score {
