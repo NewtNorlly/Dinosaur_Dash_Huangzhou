@@ -182,7 +182,7 @@ canvas {
   pointer-events: none;
 }
 
-/* ═══ Jump button — bottom left ═══ */
+/* ═══ Jump button — bottom right ═══ */
 .mbtn {
   pointer-events: auto;
   border: none;
@@ -196,7 +196,7 @@ canvas {
 .mbtn--jump {
   width: 96px; height: 96px;
   bottom: max(32px, env(safe-area-inset-bottom, 32px));
-  left: max(28px, env(safe-area-inset-left, 28px));
+  right: max(28px, env(safe-area-inset-right, 28px));
   border-radius: 50%;
   border: 2.5px solid rgba(255,193,80,0.45);
   background: radial-gradient(circle at 40% 35%,
@@ -235,12 +235,12 @@ canvas {
   letter-spacing: 0.06em;
 }
 
-/* ═══ Joystick pad — bottom right ═══ */
+/* ═══ Joystick pad — bottom left ═══ */
 .joystick-pad {
   pointer-events: auto;
   position: absolute;
   bottom: max(28px, env(safe-area-inset-bottom, 28px));
-  right: max(24px, env(safe-area-inset-right, 24px));
+  left: max(24px, env(safe-area-inset-left, 24px));
   width: 150px; height: 150px;
   border-radius: 50%;
   background: radial-gradient(circle at 50% 50%,
