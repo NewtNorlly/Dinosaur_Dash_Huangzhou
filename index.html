@@ -6,7 +6,7 @@
   <meta name="description" content="恐龙快跑（黄州府）——穿越黄州名胜古迹的跑酷小游戏">
   <meta name="theme-color" content="#0a0f1a">
   <title>恐龙快跑（黄州府）</title>
-  <link rel="stylesheet" href="dino.css?v=20260812a">
+  <link rel="stylesheet" href="dino.css?v=20260812b">
   <link rel="icon" type="image/png" href="game/assets/小恐龙-removebg-preview.webp">
 </head>
 <body>
@@ -25,8 +25,11 @@
 
   <!-- Sound + Music -->
   <div id="top-controls">
-    <button id="sound-toggle" title="音乐开关">🔊</button>
-    <button id="btn-music" class="top-btn" title="切歌">🎵</button>
+    <button id="sound-toggle" title="音乐开关" aria-label="音乐开关">🔊</button>
+    <button id="btn-music" class="top-btn" title="切歌" aria-label="切歌">🎵</button>
+    <button id="btn-flight" class="top-btn" title="开启飞翔模式" aria-label="开启飞翔模式" aria-pressed="false">
+      <svg class="flight-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.3 5.1c-.7.3-1.4.5-2.2.6a3.8 3.8 0 0 0-6.6 2.6c0 .3 0 .6.1.9A10.8 10.8 0 0 1 4.7 5.2a3.8 3.8 0 0 0 1.2 5.1c-.6 0-1.2-.2-1.7-.5 0 1.8 1.3 3.4 3.1 3.7-.3.1-.7.1-1 .1-.2 0-.5 0-.7-.1.5 1.5 1.9 2.6 3.6 2.6a7.7 7.7 0 0 1-4.8 1.7c-.3 0-.6 0-.9-.1a10.8 10.8 0 0 0 5.8 1.7c7 0 10.8-5.8 10.8-10.8v-.5c.8-.5 1.4-1.2 1.9-2-.7.3-1.4.5-2.2.6.8-.5 1.4-1.2 1.7-2.1-.7.4-1.5.8-2.4.9a3.8 3.8 0 0 0 2.2-.4Z"/></svg>
+    </button>
   </div>
 
   <!-- Start screen -->
@@ -39,13 +42,17 @@
         <p class="ctrl-section-title">⌨️ 电脑端</p>
         <div class="key-row"><kbd>空格</kbd><kbd>↑</kbd><span>跳跃</span></div>
         <div class="key-row"><kbd>←</kbd><kbd>→</kbd><span>左右移动</span></div>
-        <div class="key-row key-row--top"><kbd>M</kbd><span>切歌</span><button class="icon-hint">🔊</button><span>音乐开关</span></div>
+        <div class="key-row key-row--top"><kbd>M</kbd><span>切换歌曲</span></div>
+        <div class="key-row"><kbd>N</kbd><span>开启 / 关闭音乐</span></div>
+        <div class="key-row"><kbd>B</kbd><span>开启 / 关闭飞翔模式</span></div>
       </div>
       <div class="ctrl-section">
         <p class="ctrl-section-title">📱 手机 &amp; 平板</p>
         <div class="key-row"><span class="dot dot--left"></span><span>左半屏 → 动态摇杆移动</span></div>
         <div class="key-row"><span class="dot dot--right"></span><span>右半屏点按 → 跳跃</span></div>
-        <div class="key-row key-row--top"><button class="icon-hint">🔊</button><button class="icon-hint">🎵</button><span>右上角两个按钮控制音乐</span></div>
+        <div class="key-row key-row--top"><button class="icon-hint">🔊</button><span>开启 / 关闭音乐</span></div>
+        <div class="key-row"><button class="icon-hint">🎵</button><span>切换歌曲</span></div>
+        <div class="key-row"><button class="icon-hint flight-hint" aria-hidden="true">✈</button><span>飞翔模式：左右移动，落地后恢复计分</span></div>
       </div>
     </div>
   </div>
@@ -60,6 +67,6 @@
   <!-- Mobile touch surface (fullscreen, handles dynamic joystick + jump) -->
   <div id="mobile-controls" class="mobile-ctrl"></div>
 
-  <script src="dino.js?v=20260812a"></script>
+  <script src="dino.js?v=20260812d"></script>
 </body>
 </html>

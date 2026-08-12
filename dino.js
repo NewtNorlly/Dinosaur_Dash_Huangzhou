@@ -21,6 +21,7 @@
   const restartBtn = document.getElementById("restart");
   const startBtn = document.getElementById("start");
   const btnMusic = document.getElementById("btn-music");
+  const btnFlight = document.getElementById("btn-flight");
   const mobileCtrls = document.getElementById("mobile-controls");
 
   /* ── Constants ── */
@@ -38,6 +39,8 @@
   const OBSTACLE_MIN_SPEED = 320;
   const OBSTACLE_MAX_SPEED = 560;
   const SKY_COLOR = "#87cefa";
+  const FLIGHT_Y = GROUND_Y - DINO_H - 260;
+  const FLIGHT_SPEED = 900;
 
   /* ── Landmark sequence (matches Python image_paths order) ── */
   const LANDMARK_KEYS = [
@@ -72,6 +75,7 @@
   let moveInput = 0;         // -1 (full left) … 1 (full right) — proportional
   let animId = null;
   const OVERLAY_EXIT_MS = 180;
+  let flightState = "grounded"; // grounded | ascending | flying | descending
 
   /* ── Dynamic joystick state (module scope for cleanup access) ── */
   let joyPointerId = null;
@@ -236,8 +240,29 @@
 
     // Preload audio paths only — play on demand
     AUDIO_LIST.forEach(({ key, path }) => {
-      assets[key] = { path };
-      progress();
+      const audio = new Audio();
+      let settled = false;
+      const finish = (ready) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        audio.removeEventListener("canplaythrough", onReady);
+        audio.removeEventListener("loadeddata", onReady);
+        audio.removeEventListener("error", onError);
+        assets[key] = { path, audio, ready };
+        progress();
+      };
+      const onReady = () => finish(true);
+      const onError = () => finish(false);
+      const timeoutId = setTimeout(() => finish(audio.readyState >= 2), 5000);
+      audio.preload = "auto";
+      audio.volume = 0.4;
+      audio.loop = true;
+      audio.addEventListener("canplaythrough", onReady, { once: true });
+      audio.addEventListener("loadeddata", onReady, { once: true });
+      audio.addEventListener("error", onError, { once: true });
+      audio.src = encodeURI(path);
+      audio.load();
     });
   }
 
@@ -299,17 +324,20 @@
     if (!soundOn) return;
     const key = "bgm" + bgmIndex;
     const asset = assets[key];
-    if (!asset || !asset.path) return;
-    bgmAudio = new Audio(encodeURI(asset.path));
+    if (!asset || !asset.audio) return;
+    bgmAudio = asset.audio;
     bgmAudio.volume = 0.4;
     bgmAudio.loop = true;
     var p = bgmAudio.play();
-    if (p && typeof p.catch === "function") p.catch(function() {});
+    if (p && typeof p.catch === "function") {
+      p.catch(function() { bgmAudio = null; });
+    }
   }
 
   function stopBGM() {
     if (bgmAudio) {
       bgmAudio.pause();
+      bgmAudio.currentTime = 0;
       bgmAudio = null;
     }
   }
@@ -331,6 +359,31 @@
     if (soundOn && gameState === "playing") {
       playBGM();
     }
+  }
+
+  function isFlightActive() {
+    return flightState !== "grounded";
+  }
+
+  function updateFlightButton() {
+    const active = isFlightActive();
+    btnFlight.setAttribute("aria-pressed", active ? "true" : "false");
+    btnFlight.setAttribute("aria-label", active ? "关闭飞翔模式" : "开启飞翔模式");
+    btnFlight.title = active ? "关闭飞翔模式" : "开启飞翔模式";
+    scoreEl.classList.toggle("is-paused", active);
+  }
+
+  function toggleFlightMode() {
+    if (gameState !== "playing") return;
+    if (flightState === "grounded" || flightState === "descending") {
+      flightState = "ascending";
+      dino.jumping = false;
+      dino.vy = 0;
+    } else {
+      flightState = "descending";
+    }
+    updateFlightButton();
+    pulseControl(btnFlight);
   }
 
   function pulseControl(element) {
@@ -384,6 +437,8 @@
       vy: 0,
       jumping: false,
     };
+    flightState = "grounded";
+    updateFlightButton();
   }
 
   function spawnObstacle() {
@@ -468,7 +523,18 @@
     bgX += BG_SCROLL_SPEED * cappedDt;
 
     // Dino physics
-    if (dino.jumping) {
+    if (flightState === "ascending") {
+      dino.y = Math.max(FLIGHT_Y, dino.y - FLIGHT_SPEED * cappedDt);
+      if (dino.y <= FLIGHT_Y) flightState = "flying";
+    } else if (flightState === "descending") {
+      const groundY = GROUND_Y - dino.h;
+      dino.y = Math.min(groundY, dino.y + FLIGHT_SPEED * cappedDt);
+      if (dino.y >= groundY) {
+        flightState = "grounded";
+        dino.y = groundY;
+        updateFlightButton();
+      }
+    } else if (dino.jumping) {
       dino.y += dino.vy * cappedDt * 60;
       dino.vy += GRAVITY * cappedDt * 60;
       if (dino.y >= GROUND_Y - dino.h) {
@@ -494,8 +560,10 @@
       obs.x -= obs.speed * cappedDt;
       if (!obs.scored && obs.x + obs.w < dino.x) {
         obs.scored = true;
-        score++;
-        drawScore();
+        if (!isFlightActive()) {
+          score++;
+          drawScore();
+        }
       }
     }
 
@@ -508,7 +576,7 @@
 
     // Collision
     for (const obs of obstacles) {
-      if (rectsCollide(dino, obs)) {
+      if (!isFlightActive() && rectsCollide(dino, obs)) {
         endGame();
         return;
       }
@@ -609,13 +677,20 @@
     if (gameState === "playing") {
       if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") {
         e.preventDefault();
-        if (!dino.jumping) {
+        if (!isFlightActive() && !dino.jumping) {
           dino.jumping = true;
           dino.vy = JUMP_VEL;
         }
       }
-      if (e.code === "KeyM") {
+      if (e.code === "KeyM" && !e.repeat) {
         cycleBGM();
+      }
+      if (e.code === "KeyN" && !e.repeat) {
+        toggleSound();
+        pulseControl(soundBtn);
+      }
+      if (e.code === "KeyB" && !e.repeat) {
+        toggleFlightMode();
       }
     }
     if (e.code === "Space" && gameState === "start") {
@@ -669,7 +744,7 @@
         mobileCtrls.setPointerCapture(e.pointerId);
       } else {
         // Right half → jump (works even when joystick is active = multi-touch)
-        if (!dino.jumping) {
+        if (!isFlightActive() && !dino.jumping) {
           dino.jumping = true;
           dino.vy = JUMP_VEL;
         }
@@ -736,6 +811,12 @@
       e.preventDefault();
       e.stopPropagation();
       if (gameState === "playing") cycleBGM();
+    });
+
+    btnFlight.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleFlightMode();
     });
 
     // Start loading

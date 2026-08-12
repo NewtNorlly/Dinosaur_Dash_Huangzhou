@@ -59,6 +59,14 @@ canvas {
   color: #1a2744; letter-spacing: 0.04em;
   text-shadow: 0 0 6px rgba(255,255,255,0.5);
   pointer-events: none;
+  transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
+}
+#score.is-paused { opacity: 0.58; transform: scale(0.97); transform-origin: left top; }
+#score.is-paused::after {
+  content: " · 飞翔中（暂停计分）";
+  font-size: 0.52em;
+  color: #2563a8;
+  white-space: nowrap;
 }
 
 /* ── Top-right controls ── */
@@ -81,6 +89,14 @@ canvas {
 #top-controls #sound-toggle:active { transform: scale(0.94); }
 .top-btn.is-switching,
 #top-controls #sound-toggle.is-switching { opacity: 0.55; transform: scale(0.92); }
+#btn-flight[aria-pressed="true"] {
+  background: rgba(91,141,239,0.42);
+  border-color: rgba(190,220,255,0.72);
+  box-shadow: 0 0 18px rgba(91,141,239,0.42);
+  color: #fff;
+}
+.flight-icon { width: 22px; height: 22px; fill: currentColor; }
+#btn-flight { color: #79b8f3; }
 @media (hover: hover) and (pointer: fine) {
   .top-btn:hover,
   #top-controls #sound-toggle:hover { background: rgba(255,255,255,0.25); }
@@ -297,9 +313,15 @@ canvas {
   color: #ffd166;
   font-weight: 700;
 }
+.flight-hint { color: #79b8f3; }
+
+@media (max-width: 600px) {
+  #score { top: 64px; left: 16px; font-size: 18px; }
+  #score.is-paused::after { display: block; margin-top: 2px; }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  #loading, .overlay, .overlay > *, .top-btn,
+  #loading, #score, .overlay, .overlay > *, .top-btn,
   #top-controls #sound-toggle, .overlay .btn, .dyn-joy { transition-duration: 140ms; }
   #loading.hidden, .overlay.is-entering > *, .overlay.is-leaving > *,
   #startscreen.is-leaving > *, .top-btn.is-switching,
