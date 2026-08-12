@@ -71,6 +71,7 @@
   let keys = {};
   let moveInput = 0;         // -1 (full left) … 1 (full right) — proportional
   let animId = null;
+  const OVERLAY_EXIT_MS = 180;
 
   /* ── Dynamic joystick state (module scope for cleanup access) ── */
   let joyPointerId = null;
@@ -198,7 +199,7 @@
     function progress() {
       loaded++;
       const pct = Math.round((loaded / total) * 100);
-      progressEl.style.width = pct + "%";
+      progressEl.style.transform = "scaleX(" + (pct / 100) + ")";
       loadingText.textContent = "加载中… " + pct + "%";
       if (loaded >= total) {
         setTimeout(() => {
@@ -326,9 +327,50 @@
   function cycleBGM() {
     stopBGM();
     bgmIndex = (bgmIndex + 1) % 3;
+    pulseControl(btnMusic);
     if (soundOn && gameState === "playing") {
       playBGM();
     }
+  }
+
+  function pulseControl(element) {
+    element.classList.add("is-switching");
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => element.classList.remove("is-switching"));
+    });
+  }
+
+  function showOverlay(element, animate) {
+    element.hidden = false;
+    element.classList.remove("is-leaving");
+    if (!animate) {
+      element.classList.remove("is-entering");
+      return;
+    }
+    element.classList.add("is-entering");
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => element.classList.remove("is-entering"));
+    });
+  }
+
+  function hideOverlay(element, animate, onHidden) {
+    if (element.hidden) {
+      if (onHidden) onHidden();
+      return;
+    }
+    if (!animate) {
+      element.classList.remove("is-entering", "is-leaving");
+      element.hidden = true;
+      if (onHidden) onHidden();
+      return;
+    }
+    element.classList.remove("is-entering");
+    element.classList.add("is-leaving");
+    setTimeout(() => {
+      element.hidden = true;
+      element.classList.remove("is-leaving");
+      if (onHidden) onHidden();
+    }, OVERLAY_EXIT_MS);
   }
 
   /* ═══════════════════════════ Game Objects ═══════════════════════════ */
@@ -509,7 +551,7 @@
   function showStartScreen() {
     if (gameStarted) return;
     gameState = "start";
-    startScreen.hidden = false;
+    showOverlay(startScreen, false);
     startBtn.disabled = false;
     gameOverScreen.hidden = true;
     mobileCtrls.style.display = "none";
@@ -520,7 +562,7 @@
     drawDino();
   }
 
-  function startGame() {
+  function startGame(animateTransition = true) {
     if (gameState === "playing") return;
     gameStarted = true;
     gameState = "playing";
@@ -532,7 +574,7 @@
     cleanupJoystick();
     setupGame();
     playBGM();
-    startScreen.hidden = true;
+    hideOverlay(startScreen, animateTransition);
     mobileCtrls.style.display = "block";
   }
 
@@ -540,16 +582,22 @@
     gameState = "over";
     stopBGM();
     cleanupJoystick();
-    gameOverScreen.hidden = false;
+    showOverlay(gameOverScreen, true);
     finalScoreEl.textContent = "最终得分：" + score;
     scoreEl.style.display = "none";
     topCtrls.style.display = "none";
     mobileCtrls.style.display = "none";
   }
 
-  function restartGame() {
-    gameOverScreen.hidden = true;
-    startGame();
+  function restartGame(animateTransition = true) {
+    if (gameState === "restarting" || gameState === "playing") return;
+    gameState = "restarting";
+    if (!animateTransition) {
+      hideOverlay(gameOverScreen, false);
+      startGame(false);
+      return;
+    }
+    hideOverlay(gameOverScreen, true, () => startGame(false));
   }
 
   /* ═══════════════════════════ Input ═══════════════════════════ */
@@ -572,11 +620,11 @@
     }
     if (e.code === "Space" && gameState === "start") {
       e.preventDefault();
-      startGame();
+      startGame(false);
     }
     if (e.code === "Space" && gameState === "over") {
       e.preventDefault();
-      restartGame();
+      restartGame(false);
     }
   }
 
@@ -660,6 +708,7 @@
       e.preventDefault();
       e.stopPropagation();
       toggleSound();
+      pulseControl(soundBtn);
     });
 
     // Start game: button click OR tap anywhere on start screen
