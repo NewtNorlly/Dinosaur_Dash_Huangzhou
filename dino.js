@@ -7,7 +7,7 @@
 
 /* ─── Constants ─── */
 const W = 1600, H = 900;
-const DINO_URL = 'images/小恐龙-removebg-preview.png?v=20260828c';
+const DINO_URL = 'images/小恐龙-removebg-preview.png?v=20260828l';
 const BGM_URL = 'bgm/white-cat.mp3';
 const GROUND_Y = 820;
 const GRAVITY = 0.5;
@@ -247,6 +247,7 @@ function onKeyDown(e) {
   if (e.code === 'ArrowUp' || e.code === 'KeyW') { moveY = -1; if (handler && handler.onJump) handler.onJump(); }
   if (e.code === 'ArrowDown' || e.code === 'KeyS') moveY = 1;
   if (e.code === 'Space' && handler && handler.onJump) { e.preventDefault(); handler.onJump(); }
+  if (e.code === 'KeyF' && gameState === 'playing' && mode === 'casual' && handler && handler.activateFlight) { handler.activateFlight(); }
   if (e.code === 'Escape' && gameState === 'playing') pauseGame();
   else if (e.code === 'Escape' && gameState === 'paused') resumeGame();
 }
@@ -992,6 +993,99 @@ function applyShake() {
   }
 }
 
+/* ─── 液态流体脉冲光效湖泊 ─── */
+function drawPond(x, y, w, h, frame) {
+  ctx.save();
+  // 脉冲因子：周期性亮度变化
+  const pulse = 0.82 + 0.18 * Math.sin(frame * 0.035);
+
+  // 1. 水体主体（四层渐变，液态深邃感）
+  const waterGrad = ctx.createLinearGradient(0, y, 0, y + h);
+  waterGrad.addColorStop(0, `rgba(130, 210, 255, ${0.78 * pulse})`);
+  waterGrad.addColorStop(0.25, `rgba(70, 170, 235, ${0.82 * pulse})`);
+  waterGrad.addColorStop(0.6, `rgba(35, 120, 205, ${0.88 * pulse})`);
+  waterGrad.addColorStop(1, `rgba(18, 75, 155, ${0.92 * pulse})`);
+  ctx.fillStyle = waterGrad;
+  ctx.fillRect(x, y, w, h);
+
+  // 2. 水面脉冲发光边缘（光晕）
+  const glowGrad = ctx.createLinearGradient(0, y - 10, 0, y + 14);
+  glowGrad.addColorStop(0, 'rgba(160, 230, 255, 0)');
+  glowGrad.addColorStop(0.5, `rgba(160, 230, 255, ${0.45 * pulse})`);
+  glowGrad.addColorStop(1, 'rgba(160, 230, 255, 0)');
+  ctx.fillStyle = glowGrad;
+  ctx.fillRect(x - 4, y - 10, w + 8, 24);
+
+  // 3. 三层波纹（不同频率/振幅/速度，液态流体感）
+  for (let layer = 0; layer < 3; layer++) {
+    const amp = 1.8 + layer * 1.4;
+    const freq = 0.035 + layer * 0.018;
+    const speed = 1.8 + layer * 0.7;
+    const alpha = 0.55 - layer * 0.14;
+    ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * pulse})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let wx = x; wx <= x + w; wx += 3) {
+      const wy = y + 2 + layer * 4 + Math.sin((wx + frame * speed) * freq) * amp;
+      if (wx === x) ctx.moveTo(wx, wy);
+      else ctx.lineTo(wx, wy);
+    }
+    ctx.stroke();
+  }
+
+  // 4. 波光粼粼高光闪烁（确定性伪随机）
+  const sparkleCount = Math.floor(w / 28);
+  for (let i = 0; i < sparkleCount; i++) {
+    const sx = x + 8 + ((i * 53 + frame * 0.4) % (w - 16));
+    const sy = y + 5 + ((i * 29) % 18);
+    const twinkle = 0.5 + 0.5 * Math.sin(frame * 0.12 + i * 1.9);
+    ctx.fillStyle = `rgba(255, 255, 255, ${0.65 * twinkle * pulse})`;
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, 2.5 + twinkle * 2, 0.8, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 5. 水下脉冲光柱（三道，缓慢摆动）
+  for (let i = 0; i < 3; i++) {
+    const lx = x + w * (0.18 + i * 0.32) + Math.sin(frame * 0.018 + i * 1.2) * 25;
+    const beamGrad = ctx.createLinearGradient(lx, y, lx, y + h);
+    beamGrad.addColorStop(0, `rgba(190, 235, 255, ${0.18 * pulse})`);
+    beamGrad.addColorStop(0.6, `rgba(190, 235, 255, ${0.06 * pulse})`);
+    beamGrad.addColorStop(1, 'rgba(190, 235, 255, 0)');
+    ctx.fillStyle = beamGrad;
+    ctx.beginPath();
+    ctx.moveTo(lx - 18, y);
+    ctx.lineTo(lx + 18, y);
+    ctx.lineTo(lx + 45, y + h);
+    ctx.lineTo(lx - 45, y + h);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // 6. 上升气泡（确定性循环）
+  for (let i = 0; i < 6; i++) {
+    const bx = x + 12 + ((i * 71 + frame * 0.25) % (w - 24));
+    const by = y + h - ((frame * 0.7 + i * 35) % h);
+    const br = 1.2 + (i % 3) * 0.8;
+    ctx.fillStyle = `rgba(210, 245, 255, ${0.45 * pulse})`;
+    ctx.beginPath();
+    ctx.arc(bx, by, br, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(255, 255, 255, ${0.65 * pulse})`;
+    ctx.lineWidth = 0.6;
+    ctx.stroke();
+  }
+
+  // 7. 水底柔光反射
+  const bottomGlow = ctx.createRadialGradient(x + w / 2, y + h, 5, x + w / 2, y + h, w * 0.6);
+  bottomGlow.addColorStop(0, `rgba(100, 180, 255, ${0.15 * pulse})`);
+  bottomGlow.addColorStop(1, 'rgba(100, 180, 255, 0)');
+  ctx.fillStyle = bottomGlow;
+  ctx.fillRect(x, y + h * 0.5, w, h * 0.5);
+
+  ctx.restore();
+}
+
 /* ─── Shared clouds — 柔和棉花糖云 ─── */
 function drawClouds(offset, alpha) {
   ctx.save();
@@ -1475,7 +1569,7 @@ const CasualMode = {
     this.obstacles = []; this.tomatoes = [];
     this.speed = this.baseSpeed = 4;
     this.spawnTimer = 90; this.tomTimer = 200; this.frame = 0;
-    this.flying = false; this.flyTimer = 0; this.flyCD = 0;
+    this.flying = false; this.flyTargetY = 180;
     this.cameraX = 0; this.gameOver = false; this.won = false;
     this.vx = 0; this.jumpHeld = false;
     score = 0; resetShields();
@@ -1498,13 +1592,24 @@ const CasualMode = {
   onJumpRelease() { this.jumpHeld = false; },
 
   activateFlight() {
-    if (this.flyCD > 0 || this.flying || this.gameOver) return;
-    this.flying = true; this.flyTimer = 300; this.flyCD = 480;
-    this.dino.jumping = false; this.dino.vy = 0;
-    // 视觉反馈：飞行激活粒子效果
-    spawnParticles(this.dino.x + this.dino.w / 2, this.dino.y + this.dino.h / 2, '#1989fa', 15);
-    spawnPopup(this.dino.x + this.dino.w / 2, this.dino.y - 10, t('flight'), '#1989fa');
-    playSfx('coin');
+    if (this.gameOver) return;
+    if (this.flying) {
+      // 取消飞行：掉到地面
+      this.flying = false;
+      this.dino.jumping = true;
+      this.dino.vy = 3;
+      spawnParticles(this.dino.x + this.dino.w / 2, this.dino.y + this.dino.h / 2, '#1989fa', 10);
+      playSfx('coin');
+    } else {
+      // 进入飞行：升到固定高度悬浮，只能左右移动
+      this.flying = true;
+      this.dino.jumping = false;
+      this.dino.vy = 0;
+      this.flyTargetY = 180; // 悬浮在上空的目标高度
+      spawnParticles(this.dino.x + this.dino.w / 2, this.dino.y + this.dino.h / 2, '#1989fa', 18);
+      spawnPopup(this.dino.x + this.dino.w / 2, this.dino.y - 10, t('flight'), '#1989fa');
+      playSfx('coin');
+    }
   },
 
   spawnObstacle() {
@@ -1529,13 +1634,16 @@ const CasualMode = {
     this.speed = this.baseSpeed + this.frame * 0.0008;
     this.bgOffset = (this.bgOffset + this.speed) % 1600;
 
-    // Flight
+    // Flight — 切换式悬浮：固定在上空，只能左右移动，再按一次落地
     if (this.flying) {
-      this.flyTimer--;
-      if (moveY === -1 || keys['ArrowUp'] || keys['KeyW']) this.dino.y -= 5;
-      if (moveY === 1 || keys['ArrowDown'] || keys['KeyS']) this.dino.y += 5;
-      this.dino.y = Math.max(100, Math.min(GROUND_Y - this.dino.h, this.dino.y));
-      if (this.flyTimer <= 0) { this.flying = false; this.dino.jumping = true; this.dino.vy = -5; }
+      // 平滑升到悬浮目标高度
+      const targetY = this.flyTargetY || 180;
+      this.dino.y += (targetY - this.dino.y) * 0.12;
+      if (Math.abs(this.dino.y - targetY) < 0.5) this.dino.y = targetY;
+      this.dino.vy = 0;
+      this.dino.jumping = false;
+      // 悬浮时轻微上下浮动效果
+      this.dino.y += Math.sin(this.frame * 0.06) * 1.5;
     } else {
       // Variable jump gravity (Mario-style): lower gravity while ascending and holding jump
       // 调低重力增强滞空感，按住跳跃键时上升更轻盈
@@ -1549,8 +1657,10 @@ const CasualMode = {
         this.dino.vy = 0; this.dino.jumping = false;
       }
     }
-    if (this.flyCD > 0) this.flyCD--;
-    flightBtn.style.opacity = this.flyCD > 0 ? '0.4' : '1';
+    // 飞行按钮状态反馈：飞行中高亮
+    flightBtn.style.opacity = this.flying ? '1' : '0.85';
+    flightBtn.style.transform = this.flying ? 'scale(1.15)' : 'scale(1)';
+    flightBtn.style.boxShadow = this.flying ? '0 0 16px rgba(25,137,250,0.6)' : 'none';
 
     // Smooth horizontal movement (acceleration/deceleration)
     const targetVx = moveX * 5;
@@ -1584,7 +1694,7 @@ const CasualMode = {
       const oBox = { x: o.x + 8, y: o.y + 4, w: o.w - 16, h: o.h - 8 };
       if (!o.passed && o.x + o.w < this.dino.x) {
         o.passed = true;
-        if (o.type === 'hedgehog') {
+        if (o.type === 'hedgehog' && !this.flying) {
           score++; scoreCurrent.textContent = score;
           spawnPopup(o.x + o.w / 2, o.y - 10, t('score_pop'), '#07c160');
           spawnParticles(o.x + o.w / 2, o.y + o.h / 2, '#07c160', 6);
@@ -1919,7 +2029,7 @@ const HookedMode = {
     this.enemies = L[4].map(e => ({ x: e[0], y: GROUND_Y - (e[0] === 'koopa' ? 56 : 54), type: e[1], w: e[1] === 'koopa' ? 60 : 56, h: e[1] === 'koopa' ? 56 : 54, range: e[2], startX: e[0], dir: 1, frame: 0 })).filter(e => e.startX > 400);
     this.bats = L[5].map(b => ({ x: b[0], y: b[1], w: 72, h: 54, range: b[2], startX: b[0], dir: 1, frame: 0 })).filter(b => b.startX > 400);
     this.tomatoes = L[6].map(t => ({ x: t[0], y: t[1], size: 50, collected: false, frame: 0 }));
-    this.balloon = { x: L[7][0], y: L[7][1] };
+    this.balloon = { x: L[7][0], y: Math.max(340, L[7][1]) };
     this.blocks = (L[8] || []).map(b => ({ x: b[0], y: b[1], type: b[2], count: b[3] || 1, size: 48, used: false, hitFrame: 0 }));
     this.ponds = (L[9] || []).map(p => ({ x: p[0], w: p[1], y: GROUND_Y - 8 }));
     // Piranha plants from pipes
@@ -2140,24 +2250,8 @@ const HookedMode = {
       ctx.fill();
     }
 
-    // Ponds (water)
-    this.ponds.forEach(p => {
-      const wg = ctx.createLinearGradient(0, p.y, 0, GROUND_Y + 40);
-      wg.addColorStop(0, 'rgba(100, 181, 246, 0.7)');
-      wg.addColorStop(1, 'rgba(30, 136, 229, 0.8)');
-      ctx.fillStyle = wg;
-      ctx.fillRect(p.x - cam, p.y, p.w, GROUND_Y + 40 - p.y);
-      // Water surface ripple
-      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      for (let wx = p.x; wx < p.x + p.w; wx += 8) {
-        const wy = p.y + Math.sin((wx + this.frame * 2) * 0.05) * 2;
-        if (wx === p.x) ctx.moveTo(wx - cam, wy);
-        else ctx.lineTo(wx - cam, wy);
-      }
-      ctx.stroke();
-    });
+    // Ponds (液态流体脉冲光效)
+    this.ponds.forEach(p => drawPond(p.x - cam, p.y, p.w, GROUND_Y + 40 - p.y, this.frame));
 
     // Ground (varied height)
     this.ground.forEach(g => drawGrassPlatform(g.x - cam, g.y, g.w, GROUND_Y + 60 - g.y));
@@ -2238,7 +2332,7 @@ const ExpertMode = {
     this.enemies = L[3].map(e => ({ x: e[0], y: e[1], type: e[2], w: e[2] === 'koopa' ? 56 : 52, h: e[2] === 'koopa' ? 52 : 50, range: e[3], startX: e[0], dir: 1, frame: 0, layerY: e[1] })).filter(e => e.startX > 400);
     this.bats = L[4].map(b => ({ x: b[0], y: b[1], w: 68, h: 50, range: b[2], startX: b[0], dir: 1, frame: 0 })).filter(b => b.startX > 400);
     this.tomatoes = L[5].map(t => ({ x: t[0], y: t[1], size: 46, collected: false, frame: 0 }));
-    this.balloon = { x: L[6][0], y: L[6][1] };
+    this.balloon = { x: L[6][0], y: Math.max(600, L[6][1]) };
     this.blocks = (L[7] || []).map(b => ({ x: b[0], y: b[1], type: b[2], count: b[3] || 1, size: 44, used: false, hitFrame: 0 }));
     this.elevators = (L[8] || []).map(e => ({ x: e[0], y: e[1], y0: e[1], y1: e[2], w: e[3], h: 14, state: 'idle', timer: 0 }));
     this.piranhas = this.pipes.filter(p => p.hasPiranha).map(p => ({ x: p.x, y: p.y, w: 50, h: 70, emerge: 0, frame: 0 }));
@@ -3098,18 +3192,18 @@ function init() {
   let loadDone = false;
   const allImgs = [
     { img: dinoImg, url: DINO_URL },
-    { img: hedgehogImg, url: 'images/刺猬-removebg-preview.png?v=20260828c' },
-    { img: batImg, url: 'images/bat.png?v=20260828c' },
-    { img: tomatoImg, url: 'images/tomato.png?v=20260828c' },
-    { img: balloonImg, url: 'images/balloon.png?v=20260828c' },
-    { img: platformImg, url: 'images/platform.png?v=20260828c' },
-    { img: portalImg, url: 'images/portal.png?v=20260828c' },
-    { img: islandImg, url: 'images/island.png?v=20260828c' },
-    { img: piranhaImg, url: 'images/piranha.png?v=20260828c' },
-    { img: koopaImg, url: 'images/koopa.png?v=20260828c' },
-    { img: hedgehogNewImg, url: 'images/hedgehog_new.png?v=20260828c' },
-    { img: bgStartImg, url: 'images/bg_start.png?v=20260828c' },
-    { img: bgCasualImg, url: 'images/bg_casual.png?v=20260828c' },
+    { img: hedgehogImg, url: 'images/刺猬-removebg-preview.png?v=20260828l' },
+    { img: batImg, url: 'images/bat.png?v=20260828l' },
+    { img: tomatoImg, url: 'images/tomato.png?v=20260828l' },
+    { img: balloonImg, url: 'images/balloon.png?v=20260828l' },
+    { img: platformImg, url: 'images/platform.png?v=20260828l' },
+    { img: portalImg, url: 'images/portal.png?v=20260828l' },
+    { img: islandImg, url: 'images/island.png?v=20260828l' },
+    { img: piranhaImg, url: 'images/piranha.png?v=20260828l' },
+    { img: koopaImg, url: 'images/koopa.png?v=20260828l' },
+    { img: hedgehogNewImg, url: 'images/hedgehog_new.png?v=20260828l' },
+    { img: bgStartImg, url: 'images/bg_start.png?v=20260828l' },
+    { img: bgCasualImg, url: 'images/bg_casual.png?v=20260828l' },
   ];
 
   let loaded = 0;
