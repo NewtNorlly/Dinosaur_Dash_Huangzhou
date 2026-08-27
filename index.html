@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="dino.css?v=20260828c">
+  <link rel="stylesheet" href="dino.css?v=20260828i">
   <link rel="icon" type="image/png" href="images/小恐龙-removebg-preview.png">
 </head>
 <body>
@@ -65,83 +65,80 @@
     </button>
   </div>
 
-  <!-- Start screen -->
-  <div id="startscreen" class="overlay">
-    <div class="wx-card">
-      <div class="wx-card-header">
-        <div class="wx-logo"><img src="images/小恐龙-removebg-preview.png" alt=""></div>
-        <h1 class="wx-title" data-i18n="game_title">恐龙快跑</h1>
-        <p class="wx-subtitle" data-i18n="game_subtitle">四种玩法 · 横屏冒险</p>
+  <!-- Start screen — 沉浸式大背景 -->
+  <div id="startscreen" class="overlay overlay--immersive">
+    <div class="start-bg"></div>
+    <div class="start-content">
+      <div class="start-header">
+        <div class="start-logo"><img src="images/小恐龙-removebg-preview.png" alt=""></div>
+        <h1 class="start-title" data-i18n="game_title">恐龙快跑</h1>
+        <p class="start-subtitle" data-i18n="game_subtitle">四种玩法 · 横屏冒险</p>
       </div>
-      <div class="wx-card-body">
-        <div class="mode-grid">
-          <button class="mode-btn" data-mode="casual">
-            <div class="mode-icon mode-icon--casual">
-              <svg viewBox="0 0 48 48" fill="none">
-                <circle cx="24" cy="24" r="22" fill="#e8f8ef"/>
-                <path d="M14 30c2-6 6-10 10-10s8 4 10 10" stroke="#07c160" stroke-width="2.5" stroke-linecap="round" fill="none" stroke-dasharray="4 3"/>
-                <circle cx="20" cy="20" r="2.5" fill="#07c160"/>
-                <circle cx="28" cy="20" r="2.5" fill="#07c160"/>
-                <path d="M16 34h16" stroke="#07c160" stroke-width="2.5" stroke-linecap="round"/>
-              </svg>
-            </div>
-            <span class="mode-name" data-i18n="mode_casual">休闲</span>
-            <span class="mode-desc" data-i18n="mode_casual_desc">横版跑酷</span>
-          </button>
-          <button class="mode-btn" data-mode="novice">
-            <div class="mode-icon mode-icon--novice">
-              <svg viewBox="0 0 48 48" fill="none">
-                <rect x="6" y="6" width="36" height="36" rx="6" fill="#fff3e0"/>
-                <path d="M6 18h12V6M18 18h12M30 18h12V6M18 18v12M30 18v12M6 30h12M18 30v12M30 30h12M30 42V30" stroke="#ff976a" stroke-width="2" stroke-linecap="round"/>
-                <circle cx="12" cy="12" r="2.5" fill="#ff976a"/>
-                <circle cx="36" cy="36" r="2.5" fill="#ff976a"/>
-              </svg>
-            </div>
-            <span class="mode-name" data-i18n="mode_novice">上手</span>
-            <span class="mode-desc" data-i18n="mode_novice_desc">空中迷宫</span>
-          </button>
-          <button class="mode-btn" data-mode="hooked">
-            <div class="mode-icon mode-icon--hooked">
-              <svg viewBox="0 0 48 48" fill="none">
-                <rect x="6" y="6" width="36" height="36" rx="6" fill="#e3f2fd"/>
-                <path d="M10 36l6-10 6 4 8-12 8 8" stroke="#1989fa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                <circle cx="10" cy="36" r="3" fill="#1989fa"/>
-                <rect x="30" y="8" width="10" height="14" rx="2" fill="none" stroke="#1989fa" stroke-width="2"/>
-                <path d="M33 8V5M37 8V5" stroke="#1989fa" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-            </div>
-            <span class="mode-name" data-i18n="mode_hooked">入坑</span>
-            <span class="mode-desc" data-i18n="mode_hooked_desc">平台跳跃</span>
-          </button>
-          <button class="mode-btn" data-mode="expert">
-            <div class="mode-icon mode-icon--expert">
-              <svg viewBox="0 0 48 48" fill="none">
-                <rect x="6" y="6" width="36" height="36" rx="6" fill="#f3e5f5"/>
-                <ellipse cx="24" cy="24" rx="10" ry="10" fill="none" stroke="#7c3aed" stroke-width="2.5"/>
-                <ellipse cx="24" cy="24" rx="5" ry="5" fill="#7c3aed" opacity="0.3"/>
-                <circle cx="24" cy="24" r="2.5" fill="#7c3aed"/>
-                <circle cx="12" cy="36" r="3" fill="#7c3aed" opacity="0.5"/>
-                <circle cx="36" cy="12" r="3" fill="#7c3aed" opacity="0.5"/>
-              </svg>
-            </div>
-            <span class="mode-name" data-i18n="mode_expert">专家</span>
-            <span class="mode-desc" data-i18n="mode_expert_desc">传送迷岛</span>
-          </button>
-        </div>
-
-        <div class="wx-hint">
+      <div class="mode-grid mode-grid--immersive">
+        <button class="mode-btn mode-btn--immersive" data-mode="casual">
+          <div class="mode-icon mode-icon--casual">
+            <svg viewBox="0 0 48 48" fill="none">
+              <circle cx="24" cy="24" r="22" fill="#e8f8ef"/>
+              <path d="M14 30c2-6 6-10 10-10s8 4 10 10" stroke="#07c160" stroke-width="2.5" stroke-linecap="round" fill="none" stroke-dasharray="4 3"/>
+              <circle cx="20" cy="20" r="2.5" fill="#07c160"/>
+              <circle cx="28" cy="20" r="2.5" fill="#07c160"/>
+              <path d="M16 34h16" stroke="#07c160" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <span class="mode-name" data-i18n="mode_casual">休闲</span>
+          <span class="mode-desc" data-i18n="mode_casual_desc">横版跑酷</span>
+        </button>
+        <button class="mode-btn mode-btn--immersive" data-mode="novice">
+          <div class="mode-icon mode-icon--novice">
+            <svg viewBox="0 0 48 48" fill="none">
+              <rect x="6" y="6" width="36" height="36" rx="6" fill="#fff3e0"/>
+              <path d="M6 18h12V6M18 18h12M30 18h12V6M18 18v12M30 18v12M6 30h12M18 30v12M30 30h12M30 42V30" stroke="#ff976a" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="12" cy="12" r="2.5" fill="#ff976a"/>
+              <circle cx="36" cy="36" r="2.5" fill="#ff976a"/>
+            </svg>
+          </div>
+          <span class="mode-name" data-i18n="mode_novice">上手</span>
+          <span class="mode-desc" data-i18n="mode_novice_desc">空中迷宫</span>
+        </button>
+        <button class="mode-btn mode-btn--immersive" data-mode="hooked">
+          <div class="mode-icon mode-icon--hooked">
+            <svg viewBox="0 0 48 48" fill="none">
+              <rect x="6" y="6" width="36" height="36" rx="6" fill="#e3f2fd"/>
+              <path d="M10 36l6-10 6 4 8-12 8 8" stroke="#1989fa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <circle cx="10" cy="36" r="3" fill="#1989fa"/>
+              <rect x="30" y="8" width="10" height="14" rx="2" fill="none" stroke="#1989fa" stroke-width="2"/>
+              <path d="M33 8V5M37 8V5" stroke="#1989fa" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <span class="mode-name" data-i18n="mode_hooked">入坑</span>
+          <span class="mode-desc" data-i18n="mode_hooked_desc">平台跳跃</span>
+        </button>
+        <button class="mode-btn mode-btn--immersive" data-mode="expert">
+          <div class="mode-icon mode-icon--expert">
+            <svg viewBox="0 0 48 48" fill="none">
+              <rect x="6" y="6" width="36" height="36" rx="6" fill="#f3e5f5"/>
+              <ellipse cx="24" cy="24" rx="10" ry="10" fill="none" stroke="#7c3aed" stroke-width="2.5"/>
+              <ellipse cx="24" cy="24" rx="5" ry="5" fill="#7c3aed" opacity="0.3"/>
+              <circle cx="24" cy="24" r="2.5" fill="#7c3aed"/>
+              <circle cx="12" cy="36" r="3" fill="#7c3aed" opacity="0.5"/>
+              <circle cx="36" cy="12" r="3" fill="#7c3aed" opacity="0.5"/>
+            </svg>
+          </div>
+          <span class="mode-name" data-i18n="mode_expert">专家</span>
+          <span class="mode-desc" data-i18n="mode_expert_desc">传送迷岛</span>
+        </button>
+      </div>
+      <div class="start-footer">
+        <div class="start-hint">
           <span class="wx-hint-item" data-i18n="hint_keyboard">⌨️ 方向键/WASD</span>
           <span class="wx-hint-item" data-i18n="hint_space">空格跳跃</span>
           <span class="wx-hint-item" data-i18n="hint_touch">📱 触屏摇杆</span>
         </div>
-
-        <div class="wx-settings">
-          <div class="lang-switcher">
-            <button class="lang-btn" data-lang="zh">中文</button>
-            <button class="lang-btn" data-lang="en">EN</button>
-            <button class="lang-btn" data-lang="fr">FR</button>
-            <button class="lang-btn" data-lang="de">DE</button>
-          </div>
+        <div class="lang-switcher">
+          <button class="lang-btn" data-lang="zh">中文</button>
+          <button class="lang-btn" data-lang="en">EN</button>
+          <button class="lang-btn" data-lang="fr">FR</button>
+          <button class="lang-btn" data-lang="de">DE</button>
         </div>
       </div>
     </div>
@@ -228,6 +225,6 @@
   <!-- Confetti canvas (above all overlays) -->
   <canvas id="confetti-canvas"></canvas>
 
-  <script src="dino.js?v=20260828c"></script>
+  <script src="dino.js?v=20260828i"></script>
 </body>
 </html>
