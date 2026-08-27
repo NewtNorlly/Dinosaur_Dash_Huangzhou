@@ -6,7 +6,7 @@
   <meta name="description" content="恐龙快跑（黄州府）——穿越黄州名胜古迹的跑酷小游戏">
   <meta name="theme-color" content="#07c160">
   <title>恐龙快跑（黄州府）</title>
-  <link rel="stylesheet" href="dino.css?v=20260827b">
+  <link rel="stylesheet" href="dino.css?v=20260827c">
   <link rel="icon" type="image/png" href="game/assets/小恐龙-removebg-preview.webp">
 </head>
 <body>
@@ -27,6 +27,10 @@
     <span id="score-current">0</span>
     <span class="score-sep">/</span>
     <span id="score-target">10</span>
+    <span id="shield-badge" hidden>
+      <span class="shield-icon">🔥</span>
+      <span id="shield-count">1</span>
+    </span>
   </div>
 
   <!-- Top-center controls (sound / music / flight) -->
@@ -127,6 +131,9 @@
   <!-- Mobile touch surface (fullscreen, handles dynamic joystick + jump) -->
   <div id="mobile-controls" class="mobile-ctrl"></div>
 
-  <script src="dino.js?v=20260827b"></script>
+  <!-- Confetti canvas (above all overlays) -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <script src="dino.js?v=20260827c"></script>
 </body>
 </html>

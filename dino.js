@@ -35,6 +35,10 @@
   const scoreMinusBtn = document.getElementById("score-minus");
   const scorePlusBtn = document.getElementById("score-plus");
   const diffBtns = document.querySelectorAll(".diff-btn");
+  const shieldBadge = document.getElementById("shield-badge");
+  const shieldCountEl = document.getElementById("shield-count");
+  const confettiCanvas = document.getElementById("confetti-canvas");
+  const cctx = confettiCanvas ? confettiCanvas.getContext("2d") : null;
 
   /* ── Constants ── */
   const W = 1600, H = 900;
@@ -51,13 +55,16 @@
   const FLIGHT_Y = GROUND_Y - DINO_H - 260;
   const FLIGHT_SPEED = 900;
 
-  // Air objects (tomato / bat) hover at ~1/4 screen height above ground
-  const AIR_HEIGHT = H / 4;                        // 225px above ground
+  // Air objects: tomatoes hover at ~1/4 screen height (easy to collect);
+  // bats fly higher, near screen center (must jump to hit, but safe to stay grounded)
+  const AIR_HEIGHT = H / 4;                        // 225px above ground (tomato)
   const AIR_CENTER_Y = GROUND_Y - AIR_HEIGHT;      // y = 675
   const TOMATO_SIZE = 48;
   const BAT_W = 80, BAT_H = 56;
   const TOMATO_Y = AIR_CENTER_Y - TOMATO_SIZE / 2;
-  const BAT_Y = AIR_CENTER_Y - BAT_H / 2;
+  // Bats near screen center: center y=350 (reachable at jump peak, safe when grounded)
+  const BAT_CENTER_Y = 350;
+  const BAT_Y = BAT_CENTER_Y - BAT_H / 2;
 
   // Difficulty configurations
   const DIFFICULTY = {
@@ -133,7 +140,7 @@
   let flightState = "grounded";
   let selectedDifficulty = "casual";
   let targetScore = 10;
-  let hasFireShield = false;
+  let fireShieldCount = 0;   // stackable shields: eat N tomatoes = N hits absorbed
   let fireAnimTime = 0;
   let batFlapTime = 0;
   let currentDiff = null;
@@ -546,20 +553,6 @@
     }
   }
 
-  function drawConfetti() {
-    for (const p of confetti) {
-      const alpha = Math.min(1, p.life / 0.5);
-      ctx.globalAlpha = alpha;
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.rot);
-      ctx.fillStyle = p.color;
-      ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
-      ctx.restore();
-    }
-    ctx.globalAlpha = 1;
-  }
-
   /* ═══════════════════════════ Scaling ═══════════════════════════ */
 
   function resizeCanvas() {
@@ -567,6 +560,11 @@
     canvas.height = H;
     canvas.style.width = window.innerWidth + "px";
     canvas.style.height = window.innerHeight + "px";
+    // Confetti canvas shares the same 1600×900 internal resolution
+    confettiCanvas.width = W;
+    confettiCanvas.height = H;
+    confettiCanvas.style.width = window.innerWidth + "px";
+    confettiCanvas.style.height = window.innerHeight + "px";
   }
 
   /* ═══════════════════════════ Audio ═══════════════════════════ */
@@ -674,7 +672,7 @@
       vy: 0, jumping: false,
     };
     flightState = "grounded";
-    hasFireShield = false;
+    fireShieldCount = 0;
     fireParticles = [];
     dinoSquash = 0;
     wasJumping = false;
@@ -781,16 +779,16 @@
   /* ═══════════════════════════ Fire Shield ═══════════════════════════ */
 
   function activateFireShield() {
-    hasFireShield = true;
-    fireParticles = [];
-    // Sparkle burst at dino position
+    fireShieldCount++;
+    // Don't clear existing particles when stacking; just add a fresh burst
     if (dino) {
       spawnSparkles(dino.x + dino.w / 2, dino.y + dino.h / 2, 16, "255,180,40");
     }
+    updateShieldBadge();
   }
 
-  function deactivateFireShield() {
-    hasFireShield = false;
+  function consumeFireShield() {
+    fireShieldCount--;
     // burst particles
     for (let i = 0; i < 20; i++) {
       fireParticles.push({
@@ -807,6 +805,7 @@
     triggerFlash(0.35, "255,100,20");
     triggerShake(8);
     spawnSparkles(dino.x + dino.w / 2, dino.y + dino.h / 2, 10, "255,120,30");
+    updateShieldBadge();
   }
 
   function updateFireParticles(dt) {
@@ -817,6 +816,15 @@
       p.vy += 300 * dt;
       p.life -= dt;
       if (p.life <= 0) fireParticles.splice(i, 1);
+    }
+  }
+
+  function updateShieldBadge() {
+    if (fireShieldCount > 0) {
+      shieldBadge.hidden = false;
+      shieldCountEl.textContent = fireShieldCount;
+    } else {
+      shieldBadge.hidden = true;
     }
   }
 
@@ -1013,7 +1021,7 @@
 
   // Draw fire shield aura around dino
   function drawFireShield() {
-    if (!hasFireShield) return;
+    if (fireShieldCount <= 0) return;
     const t = fireAnimTime;
     const cx = dino.x + dino.w / 2;
     const cy = dino.y + dino.h / 2;
@@ -1217,9 +1225,9 @@
     if (!flying) {
       for (let i = obstacles.length - 1; i >= 0; i--) {
         if (rectsCollide(dino, obstacles[i])) {
-          if (hasFireShield) {
-            // Shield absorbs the hit
-            deactivateFireShield();
+          if (fireShieldCount > 0) {
+            // Shield absorbs the hit (consumes one layer)
+            consumeFireShield();
             spawnSparkles(obstacles[i].x + obstacles[i].w / 2, obstacles[i].y + obstacles[i].h / 2, 8, "255,160,40");
             obstacles.splice(i, 1);
           } else {
@@ -1234,9 +1242,9 @@
       // Collision: bats (air obstacles)
       for (let i = bats.length - 1; i >= 0; i--) {
         if (airCollide(dino, bats[i])) {
-          if (hasFireShield) {
-            // Shield absorbs the bat hit too
-            deactivateFireShield();
+          if (fireShieldCount > 0) {
+            // Shield absorbs the bat hit too (consumes one layer)
+            consumeFireShield();
             spawnSparkles(bats[i].x + bats[i].w / 2, bats[i].y + bats[i].h / 2, 8, "120,60,180");
             bats.splice(i, 1);
           } else {
@@ -1248,12 +1256,13 @@
         }
       }
 
-      // Collision: tomatoes (collect)
+      // Collision: tomatoes (collect — stacks shield count)
       for (let i = tomatoes.length - 1; i >= 0; i--) {
         if (airCollide(dino, tomatoes[i])) {
           tomatoes[i].collected = true;
           activateFireShield();
-          spawnScorePopup(tomatoes[i].x + tomatoes[i].w / 2, tomatoes[i].y - 10, "护盾!", "#ff6a00");
+          spawnScorePopup(tomatoes[i].x + tomatoes[i].w / 2, tomatoes[i].y - 10,
+            fireShieldCount > 1 ? "护盾 x" + fireShieldCount + "!" : "护盾!", "#ff6a00");
           tomatoes.splice(i, 1);
         }
       }
@@ -1287,7 +1296,6 @@
     drawFireParticles();
     drawSparkles();
     drawScorePopups();
-    drawConfetti();
 
     ctx.restore();
 
@@ -1298,6 +1306,24 @@
     }
   }
 
+  /* ── Confetti renders on a top-layer canvas above all HTML overlays ── */
+  function renderConfetti() {
+    if (!cctx) return;
+    cctx.clearRect(0, 0, W, H);
+    if (confetti.length === 0) return;
+    for (const p of confetti) {
+      const alpha = Math.min(1, p.life / 0.5);
+      cctx.globalAlpha = alpha;
+      cctx.save();
+      cctx.translate(p.x, p.y);
+      cctx.rotate(p.rot);
+      cctx.fillStyle = p.color;
+      cctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+      cctx.restore();
+    }
+    cctx.globalAlpha = 1;
+  }
+
   function gameLoop(timestamp) {
     if (lastTime === 0) lastTime = timestamp;
     const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
@@ -1306,6 +1332,7 @@
     if (gameState === "playing") {
       update(dt);
       render();
+      renderConfetti();
     } else if (gameState === "over") {
       // Keep animating confetti and screen effects on settlement screen
       fireAnimTime += dt;
@@ -1315,6 +1342,10 @@
       updateSparkles(dt);
       updateFireParticles(dt);
       render();
+      renderConfetti();
+    } else {
+      // No confetti outside playing/over states
+      cctx.clearRect(0, 0, W, H);
     }
     animId = requestAnimationFrame(gameLoop);
   }
@@ -1341,7 +1372,7 @@
     bgX = 0;
     spawnTimer = 0.6;
     obstacleCounter = 0;
-    hasFireShield = false;
+    fireShieldCount = 0;
     fireAnimTime = 0;
     batFlapTime = 0;
     idleTime = 0;
@@ -1350,6 +1381,8 @@
     scoreBumpTimer = 0;
     gameResult = null;
     initClouds();
+    updateShieldBadge();
+    cctx.clearRect(0, 0, W, H);
     drawScore();
   }
 
@@ -1361,6 +1394,8 @@
     mobileCtrls.style.display = "none";
     topCtrls.style.display = "none";
     scoreEl.style.display = "none";
+    shieldBadge.hidden = true;
+    cctx.clearRect(0, 0, W, H);
     initClouds();
     drawBackground();
     resetDino();
