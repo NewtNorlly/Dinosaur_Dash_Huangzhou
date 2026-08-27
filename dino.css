@@ -459,6 +459,7 @@ html, body {
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   transition: transform 0.12s ease, background 0.12s;
 }
+.top-btn[hidden] { display: none !important; }
 .top-btn:hover { background: #fff; }
 .top-btn:active { transform: scale(0.88); }
 

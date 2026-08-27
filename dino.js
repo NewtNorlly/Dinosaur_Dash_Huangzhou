@@ -10,7 +10,12 @@ const W = 1600, H = 900;
 const DINO_URL = 'images/小恐龙-removebg-preview.png';
 const BGM_URL = 'bgm/white-cat.mp3';
 const GROUND_Y = 820;
-const GRAVITY = 0.55;
+const GRAVITY = 0.5;
+
+// Maze dimensions (landscape)
+const MAZE_COLS = 32, MAZE_ROWS = 18, CELL = 46;
+const MAZE_W = MAZE_COLS * CELL, MAZE_H = MAZE_ROWS * CELL;
+const MAZE_OX = (W - MAZE_W) / 2, MAZE_OY = (H - MAZE_H) / 2;
 
 // roundRect polyfill
 if (!CanvasRenderingContext2D.prototype.roundRect) {
@@ -167,10 +172,30 @@ let score = 0, targetScore = 10, shields = 0;
 let careMode = false;
 let bgm = null, bgmPlaying = false, bgmEnabled = true;
 let dinoImg = new Image();
+let hedgehogImg = new Image();
 let popups = [];
 let confettiParts = [];
+let particles = [];
+let screenShake = 0;
 let animFrame = null;
 let lastTime = 0;
+
+// Background building images for casual mode
+const bgBuildings = [
+  'game/assets/HG2.0.webp',
+  'game/assets/HG3.0-removebg-preview.webp',
+  'game/assets/遗爱湖建筑群-removebg-preview.webp',
+  'game/assets/长江大桥-removebg-preview.webp',
+  'game/assets/青云塔-removebg-preview.webp',
+  'game/assets/安国寺-removebg-preview.webp',
+  'game/assets/栖霞楼-removebg-preview.webp',
+];
+const bgPillars = [
+  'game/assets/中式柱子1.webp','game/assets/中式柱子2.webp','game/assets/中式柱子3.webp',
+  'game/assets/中式柱子4.webp','game/assets/中式柱子5.webp','game/assets/中式柱子6.webp',
+];
+let bgImgs = [], pillarImgs = [];
+let bgScroll = 0;
 
 /* ─── Canvas resize ─── */
 function resize() {
@@ -234,6 +259,7 @@ function onKeyUp(e) {
   if (e.code === 'ArrowRight' || e.code === 'KeyD') moveX = (keys['ArrowLeft'] || keys['KeyA']) ? -1 : 0;
   if (e.code === 'ArrowUp' || e.code === 'KeyW') moveY = (keys['ArrowDown'] || keys['KeyS']) ? 1 : 0;
   if (e.code === 'ArrowDown' || e.code === 'KeyS') moveY = (keys['ArrowUp'] || keys['KeyW']) ? -1 : 0;
+  if ((e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') && handler && handler.onJumpRelease) handler.onJumpRelease();
 }
 window.addEventListener('keydown', onKeyDown);
 window.addEventListener('keyup', onKeyUp);
@@ -323,15 +349,20 @@ function drawShieldAura(x, y, w, h, frame) {
 }
 
 function drawHedgehog(x, y, w, h, frame) {
+  if (hedgehogImg.complete && hedgehogImg.naturalWidth > 0) {
+    ctx.save();
+    ctx.drawImage(hedgehogImg, x, y, w, h);
+    ctx.restore();
+    return;
+  }
+  // Fallback canvas hedgehog
   ctx.save();
   ctx.translate(x + w / 2, y + h);
   const bob = Math.sin(frame * 0.2) * 1;
-  // body
   ctx.fillStyle = '#8B6F47';
   ctx.beginPath();
   ctx.ellipse(0, -h * 0.35 + bob, w * 0.45, h * 0.35, 0, 0, Math.PI * 2);
   ctx.fill();
-  // spikes
   ctx.fillStyle = '#5D4E37';
   for (let i = -3; i <= 3; i++) {
     const sx = i * w * 0.11;
@@ -341,15 +372,12 @@ function drawHedgehog(x, y, w, h, frame) {
     ctx.lineTo(sx + 3, -h * 0.55 + bob);
     ctx.fill();
   }
-  // face
   ctx.fillStyle = '#A08060';
   ctx.beginPath();
   ctx.ellipse(w * 0.3, -h * 0.3 + bob, w * 0.18, h * 0.2, 0, 0, Math.PI * 2);
   ctx.fill();
-  // eye
   ctx.fillStyle = '#000';
   ctx.beginPath(); ctx.arc(w * 0.35, -h * 0.38 + bob, 1.5, 0, Math.PI * 2); ctx.fill();
-  // nose
   ctx.fillStyle = '#333';
   ctx.beginPath(); ctx.arc(w * 0.46, -h * 0.25 + bob, 2, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
@@ -636,6 +664,41 @@ function drawConfetti() {
   });
 }
 
+/* ─── Particles & screen shake ─── */
+function spawnParticles(x, y, color, count) {
+  for (let i = 0; i < (count || 10); i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 2 + Math.random() * 4;
+    particles.push({
+      x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 2,
+      life: 30 + Math.random() * 20, size: 3 + Math.random() * 4, color: color
+    });
+  }
+}
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.life--;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+  if (screenShake > 0) screenShake *= 0.85;
+  if (screenShake < 0.5) screenShake = 0;
+}
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, p.life / 20);
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (p.life / 50), 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  });
+}
+function applyShake() {
+  if (screenShake > 0) {
+    ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake);
+  }
+}
+
 /* ─── Shared clouds ─── */
 function drawClouds(offset, alpha) {
   ctx.save();
@@ -676,9 +739,6 @@ function resetShields() {
 /* ═══════════════════════════════════════════════════════════════
    MAZE GENERATION (Novice mode)
    ═══════════════════════════════════════════════════════════════ */
-const MAZE_COLS = 18, MAZE_ROWS = 32, CELL = 28;
-const MAZE_W = MAZE_COLS * CELL, MAZE_H = MAZE_ROWS * CELL;
-const MAZE_OX = (W - MAZE_W) / 2, MAZE_OY = (H - MAZE_H) / 2;
 
 function mulberry32(seed) {
   return function () {
@@ -709,6 +769,8 @@ function generateMaze(seed) {
   grid[2][0] = 0;
   grid[MAZE_ROWS - 2][MAZE_COLS - 1] = 0; // exit
   grid[MAZE_ROWS - 3][MAZE_COLS - 1] = 0;
+  grid[MAZE_ROWS - 2][MAZE_COLS - 2] = 0; // open wall to exit
+  grid[MAZE_ROWS - 3][MAZE_COLS - 2] = 0;
   return grid;
 }
 
@@ -738,8 +800,8 @@ function buildMazeEntities(grid, seed) {
   // 2 bats flying diagonally
   for (let i = 0; i < 2; i++) {
     bats.push({
-      x: MAZE_OX + CELL * (3 + i * 8), y: MAZE_OY + CELL * (5 + i * 10),
-      vx: 1.2 + i * 0.3, vy: 0.9 + i * 0.2, w: 30, h: 22
+      x: MAZE_OX + CELL * (4 + i * 10), y: MAZE_OY + CELL * (3 + i * 6),
+      vx: 1.5 + i * 0.4, vy: 1.0 + i * 0.3, w: 38, h: 28, frame: 0
     });
   }
   // Tomatoes at dead ends
@@ -822,17 +884,20 @@ const PORTAL_LEVELS = [
    CASUAL MODE — Runner
    ═══════════════════════════════════════════════════════════════ */
 const CasualMode = {
-  dino: null, obstacles: [], tomatoes: [], speed: 7, baseSpeed: 7,
+  dino: null, obstacles: [], tomatoes: [], speed: 4, baseSpeed: 4,
   spawnTimer: 0, tomTimer: 0, frame: 0, flying: false, flyTimer: 0, flyCD: 0,
-  cameraX: 0, gameOver: false, won: false, bgOffset: 0,
+  cameraX: 0, gameOver: false, won: false, bgOffset: 0, vx: 0, jumpHeld: false,
+  bgLayers: null,
 
   init() {
     this.dino = { x: 150, y: GROUND_Y - 226, w: 190, h: 226, vy: 0, jumping: false, squash: 0, facing: 'right' };
     this.obstacles = []; this.tomatoes = [];
-    this.speed = this.baseSpeed = 7;
-    this.spawnTimer = 60; this.tomTimer = 180; this.frame = 0;
+    this.speed = this.baseSpeed = 4;
+    this.spawnTimer = 90; this.tomTimer = 200; this.frame = 0;
     this.flying = false; this.flyTimer = 0; this.flyCD = 0;
     this.cameraX = 0; this.gameOver = false; this.won = false;
+    this.vx = 0; this.jumpHeld = false;
+    this.initBgLayers();
     score = 0; resetShields();
     scoreEl.hidden = false; levelIndicator.hidden = true;
     flightBtn.hidden = false;
@@ -840,13 +905,25 @@ const CasualMode = {
     joyMode = 'horizontal';
   },
 
+  initBgLayers() {
+    // Parallax building layers
+    this.bgLayers = [
+      { imgs: bgImgs.slice(0, 4), speed: 0.06, minW: 280, maxW: 400, maxH: 320, gap: 400, alpha: 0.35 },
+      { imgs: bgImgs.slice(2, 6), speed: 0.15, minW: 200, maxW: 320, maxH: 260, gap: 320, alpha: 0.5 },
+      { imgs: pillarImgs.slice(0, 5), speed: 0.3, minW: 70, maxW: 100, maxH: 350, gap: 300, alpha: 0.45 },
+    ];
+  },
+
   onJump() {
     if (this.gameOver) return;
     if (this.flying) return;
     if (!this.dino.jumping) {
-      this.dino.vy = -14; this.dino.jumping = true; this.dino.squash = -0.4;
+      this.dino.vy = -16; this.dino.jumping = true; this.dino.squash = -0.4;
+      this.jumpHeld = true;
     }
   },
+
+  onJumpRelease() { this.jumpHeld = false; },
 
   activateFlight() {
     if (this.flyCD > 0 || this.flying || this.gameOver) return;
@@ -855,25 +932,25 @@ const CasualMode = {
   },
 
   spawnObstacle() {
-    const isBat = Math.random() < 0.4;
+    const isBat = Math.random() < 0.35;
     if (isBat) {
-      const y = 280 + Math.random() * 200;
+      const y = 300 + Math.random() * 180;
       this.obstacles.push({ type: 'bat', x: W + 50, y: y, w: 60, h: 44, vx: -this.speed, frame: 0 });
     } else {
-      const h = 50 + Math.random() * 30;
-      this.obstacles.push({ type: 'hedgehog', x: W + 50, y: GROUND_Y - h, w: 60, h: h, vx: -this.speed, frame: 0 });
+      const h = 55 + Math.random() * 25;
+      this.obstacles.push({ type: 'hedgehog', x: W + 50, y: GROUND_Y - h, w: 65, h: h, vx: -this.speed, frame: 0 });
     }
   },
 
   spawnTomato() {
-    const y = 300 + Math.random() * 250;
-    this.tomatoes.push({ x: W + 30, y: y, size: 40, vx: -this.speed, collected: false, frame: 0 });
+    const y = 320 + Math.random() * 220;
+    this.tomatoes.push({ x: W + 30, y: y, size: 42, vx: -this.speed, collected: false, frame: 0 });
   },
 
   update() {
     if (this.gameOver) return;
     this.frame++;
-    this.speed = this.baseSpeed + this.frame * 0.0015;
+    this.speed = this.baseSpeed + this.frame * 0.0008;
     this.bgOffset = (this.bgOffset + this.speed) % 1600;
 
     // Flight
@@ -884,33 +961,41 @@ const CasualMode = {
       this.dino.y = Math.max(100, Math.min(GROUND_Y - this.dino.h, this.dino.y));
       if (this.flyTimer <= 0) { this.flying = false; this.dino.jumping = true; this.dino.vy = -5; }
     } else {
-      // Gravity
-      this.dino.vy += GRAVITY;
+      // Variable jump gravity (Mario-style): lower gravity while ascending and holding jump
+      const grav = (this.dino.vy < 0 && this.jumpHeld) ? GRAVITY * 0.5 : GRAVITY;
+      this.dino.vy += grav;
+      if (this.dino.vy > 14) this.dino.vy = 14; // terminal velocity
       this.dino.y += this.dino.vy;
       if (this.dino.y >= GROUND_Y - this.dino.h) {
-        this.dino.y = GROUND_Y - this.dino.h; this.dino.vy = 0; this.dino.jumping = false;
+        this.dino.y = GROUND_Y - this.dino.h;
+        if (this.dino.jumping) { this.dino.squash = 0.3; } // landing squash
+        this.dino.vy = 0; this.dino.jumping = false;
       }
     }
     if (this.flyCD > 0) this.flyCD--;
     flightBtn.style.opacity = this.flyCD > 0 ? '0.4' : '1';
 
-    // Horizontal movement
-    if (moveX < 0) { this.dino.x -= 3; this.dino.facing = 'left'; }
-    else if (moveX > 0) { this.dino.x += 3; this.dino.facing = 'right'; }
-    this.dino.x = Math.max(50, Math.min(400, this.dino.x));
+    // Smooth horizontal movement (acceleration/deceleration)
+    const targetVx = moveX * 5;
+    this.vx += (targetVx - this.vx) * 0.2;
+    this.dino.x += this.vx;
+    if (moveX < 0) this.dino.facing = 'left';
+    else if (moveX > 0) this.dino.facing = 'right';
+    this.dino.x = Math.max(50, Math.min(450, this.dino.x));
 
-    // Squash recovery
-    if (this.dino.squash < 0) this.dino.squash += 0.05;
-    if (!this.dino.jumping && this.dino.squash > 0) this.dino.squash = 0;
+    // Squash/stretch recovery
+    if (this.dino.squash < 0) this.dino.squash += 0.04;
+    if (this.dino.squash > 0) this.dino.squash -= 0.04;
+    if (Math.abs(this.dino.squash) < 0.02) this.dino.squash = 0;
 
     // Spawn
     this.spawnTimer--;
     if (this.spawnTimer <= 0) {
       this.spawnObstacle();
-      this.spawnTimer = Math.max(40, 80 - this.frame * 0.01);
+      this.spawnTimer = Math.max(55, 100 - this.frame * 0.008);
     }
     this.tomTimer--;
-    if (this.tomTimer <= 0) { this.spawnTomato(); this.tomTimer = 200 + Math.random() * 200; }
+    if (this.tomTimer <= 0) { this.spawnTomato(); this.tomTimer = 250 + Math.random() * 200; }
 
     // Update obstacles
     const dinoBox = { x: this.dino.x + 40, y: this.dino.y + 30, w: this.dino.w - 80, h: this.dino.h - 50 };
@@ -923,14 +1008,19 @@ const CasualMode = {
         if (o.type === 'hedgehog') {
           score++; scoreCurrent.textContent = score;
           spawnPopup(o.x + o.w / 2, o.y - 10, t('score_pop'), '#07c160');
+          spawnParticles(o.x + o.w / 2, o.y + o.h / 2, '#07c160', 6);
           if (score >= targetScore) { this.won = true; this.endGame('victory'); return; }
         }
       }
       if (!this.flying && aabb(dinoBox, oBox)) {
         if (useShield()) {
           spawnPopup(this.dino.x + this.dino.w / 2, this.dino.y, t('shield_pop'), '#ff6a00');
+          spawnParticles(o.x + o.w / 2, o.y + o.h / 2, '#ff6a00', 12);
+          screenShake = 8;
           this.obstacles.splice(i, 1);
         } else {
+          screenShake = 15;
+          spawnParticles(this.dino.x + this.dino.w / 2, this.dino.y + this.dino.h / 2, '#e64340', 15);
           this.endGame('defeat'); return;
         }
       }
@@ -945,6 +1035,7 @@ const CasualMode = {
       if (!tm.collected && (this.flying || aabb(dinoBox, tmBox))) {
         tm.collected = true; addShield();
         spawnPopup(tm.x + tm.size / 2, tm.y, shields > 1 ? t('shield_pop_multi', { n: shields }) : t('shield_pop'), '#ff6a00');
+        spawnParticles(tm.x + tm.size / 2, tm.y + tm.size / 2, '#ff4444', 10);
         this.tomatoes.splice(i, 1); continue;
       }
       if (tm.x + tm.size < -100) this.tomatoes.splice(i, 1);
@@ -958,15 +1049,39 @@ const CasualMode = {
   },
 
   render() {
+    ctx.save();
+    applyShake();
     // Sky gradient
     const sky = ctx.createLinearGradient(0, 0, 0, H);
     sky.addColorStop(0, '#87CEEB'); sky.addColorStop(0.6, '#B0E0F8'); sky.addColorStop(1, '#E8F4FD');
     ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
-    drawClouds(this.bgOffset, 0.75);
+    drawClouds(this.bgOffset, 0.7);
+
+    // Parallax background buildings
+    if (this.bgLayers) {
+      this.bgLayers.forEach((layer, li) => {
+        const scroll = this.bgOffset * layer.speed;
+        const span = layer.gap + layer.maxW;
+        const startX = -((scroll) % span) - layer.maxW;
+        for (let bx = startX; bx < W + layer.maxW; bx += span) {
+          const idx = Math.abs(Math.floor((bx + scroll + li * 1000) / span)) % layer.imgs.length;
+          const img = layer.imgs[idx];
+          if (img && img.complete && img.naturalWidth > 0) {
+            const w = layer.minW + (idx * 47 % (layer.maxW - layer.minW));
+            const aspect = img.naturalHeight / img.naturalWidth;
+            let h = w * aspect;
+            if (h > layer.maxH) h = layer.maxH; // cap height
+            ctx.globalAlpha = layer.alpha;
+            ctx.drawImage(img, bx, GROUND_Y - h, w, h);
+          }
+        }
+        ctx.globalAlpha = 1;
+      });
+    }
+
     // Ground
     ctx.fillStyle = '#8BC34A'; ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
     ctx.fillStyle = '#7CB342'; ctx.fillRect(0, GROUND_Y, W, 6);
-    // Ground detail
     ctx.fillStyle = '#689F38';
     for (let i = 0; i < W; i += 40) {
       const gx = (i - this.bgOffset) % W;
@@ -981,7 +1096,6 @@ const CasualMode = {
     this.tomatoes.forEach(tm => drawTomato(tm.x, tm.y, tm.size, tm.frame));
     // Dino
     if (this.flying) {
-      // airplane under dino
       ctx.save(); ctx.fillStyle = '#1989fa';
       ctx.beginPath();
       ctx.moveTo(this.dino.x + 20, this.dino.y + this.dino.h - 20);
@@ -992,7 +1106,9 @@ const CasualMode = {
     }
     drawDino(this.dino.x, this.dino.y, this.dino.w, this.dino.h, this.dino.facing, this.dino.squash);
     if (shields > 0) drawShieldAura(this.dino.x + 40, this.dino.y + 30, this.dino.w - 80, this.dino.h - 50, this.frame);
+    drawParticles();
     drawPopups();
+    ctx.restore();
   },
 
   cleanup() { flightBtn.hidden = true; }
@@ -1009,15 +1125,15 @@ const NoviceMode = {
     this.grid = generateMaze(levelIdx * 7 + 42);
     const ents = buildMazeEntities(this.grid, levelIdx * 7 + 42);
     this.hedgehogs = ents.hedgehogs.map(h => ({
-      ...h, x: MAZE_OX + h.gx * CELL + 3, y: MAZE_OY + h.gy * CELL + 2,
-      w: CELL - 6, h: CELL - 4, startGX: h.gx, progress: 0
+      ...h, x: MAZE_OX + h.gx * CELL + 3, y: MAZE_OY + h.gy * CELL + 3,
+      w: CELL - 6, h: CELL - 6, startGX: h.gx, startGY: h.gy, progress: 0
     }));
     this.bats = ents.bats;
     this.tomatoes = ents.tomatoes.map(t => ({
-      ...t, x: MAZE_OX + t.gx * CELL + 4, y: MAZE_OY + t.gy * CELL + 4,
-      size: CELL - 8, frame: 0
+      ...t, x: MAZE_OX + t.gx * CELL + 6, y: MAZE_OY + t.gy * CELL + 6,
+      size: CELL - 12, frame: 0
     }));
-    this.dino = { x: MAZE_OX + 3, y: MAZE_OY + CELL + 3, w: CELL - 8, h: CELL - 6, facing: 'right' };
+    this.dino = { x: MAZE_OX + 4, y: MAZE_OY + CELL + 4, w: CELL - 10, h: CELL - 8, facing: 'right' };
     this.frame = 0; this.gameOver = false; this.won = false;
     this.goalGX = MAZE_COLS - 1; this.goalGY = MAZE_ROWS - 2;
     resetShields();
@@ -1047,33 +1163,31 @@ const NoviceMode = {
   update() {
     if (this.gameOver) return;
     this.frame++;
-    const speed = 3.5;
+    const speed = 4;
     const d = this.dino;
     let dx = 0, dy = 0;
     if (moveX < 0 || keys['ArrowLeft'] || keys['KeyA']) { dx = -speed; d.facing = 'left'; }
     if (moveX > 0 || keys['ArrowRight'] || keys['KeyD']) { dx = speed; d.facing = 'right'; }
     if (moveY < 0 || keys['ArrowUp'] || keys['KeyW']) dy = -speed;
     if (moveY > 0 || keys['ArrowDown'] || keys['KeyS']) dy = speed;
-    // Diagonal normalize
     if (dx !== 0 && dy !== 0) { dx *= 0.707; dy *= 0.707; }
-    // Axis-separated collision
     if (dx !== 0 && this.canMoveTo(d.x + dx, d.y)) d.x += dx;
     if (dy !== 0 && this.canMoveTo(d.x, d.y + dy)) d.y += dy;
 
     // Update hedgehogs
     this.hedgehogs.forEach(h => {
-      h.progress += 0.02 * h.dir;
+      h.progress += 0.015 * h.dir;
       if (h.progress >= h.range - 1) { h.progress = h.range - 1; h.dir = -1; }
       if (h.progress <= 0) { h.progress = 0; h.dir = 1; }
       if (h.axis === 'h') { h.x = MAZE_OX + (h.startGX + h.progress) * CELL + 3; }
-      else { h.y = MAZE_OY + (h.startGY + h.progress) * CELL + 2; }
+      else { h.y = MAZE_OY + (h.startGY + h.progress) * CELL + 3; }
     });
 
-    // Update bats (diagonal, bounce off maze bounds)
+    // Update bats
     this.bats.forEach(b => {
-      b.x += b.vx; b.y += b.vy;
-      if (b.x < MAZE_OX || b.x + b.w > MAZE_OX + MAZE_W) b.vx *= -1;
-      if (b.y < MAZE_OY || b.y + b.h > MAZE_OY + MAZE_H) b.vy *= -1;
+      b.x += b.vx; b.y += b.vy; b.frame = (b.frame || 0) + 1;
+      if (b.x < MAZE_OX + 10 || b.x + b.w > MAZE_OX + MAZE_W - 10) b.vx *= -1;
+      if (b.y < MAZE_OY + 10 || b.y + b.h > MAZE_OY + MAZE_H - 10) b.vy *= -1;
     });
 
     // Tomato collection
@@ -1084,6 +1198,7 @@ const NoviceMode = {
       if (aabb(dBox, { x: tm.x, y: tm.y, w: tm.size, h: tm.size })) {
         addShield();
         spawnPopup(tm.x + tm.size / 2, tm.y, shields > 1 ? t('shield_pop_multi', { n: shields }) : t('shield_pop'), '#ff6a00');
+        spawnParticles(tm.x + tm.size / 2, tm.y + tm.size / 2, '#ff4444', 8);
         this.tomatoes.splice(i, 1);
       }
     }
@@ -1092,29 +1207,44 @@ const NoviceMode = {
     for (let i = this.hedgehogs.length - 1; i >= 0; i--) {
       const h = this.hedgehogs[i];
       if (aabb(dBox, h)) {
-        if (useShield()) { spawnPopup(d.x + d.w / 2, d.y, t('shield_pop'), '#ff6a00'); this.hedgehogs.splice(i, 1); }
-        else { this.endGame('defeat'); return; }
+        if (useShield()) {
+          spawnPopup(d.x + d.w / 2, d.y, t('shield_pop'), '#ff6a00');
+          spawnParticles(h.x + h.w / 2, h.y + h.h / 2, '#ff6a00', 10);
+          screenShake = 6;
+          this.hedgehogs.splice(i, 1);
+        }
+        else { screenShake = 12; spawnParticles(d.x + d.w / 2, d.y + d.h / 2, '#e64340', 12); this.endGame('defeat'); return; }
       }
     }
     // Bat collision
     for (let i = this.bats.length - 1; i >= 0; i--) {
       const b = this.bats[i];
       if (aabb(dBox, b)) {
-        if (useShield()) { spawnPopup(d.x + d.w / 2, d.y, t('shield_pop'), '#ff6a00'); this.bats.splice(i, 1); }
-        else { this.endGame('defeat'); return; }
+        if (useShield()) {
+          spawnPopup(d.x + d.w / 2, d.y, t('shield_pop'), '#ff6a00');
+          spawnParticles(b.x + b.w / 2, b.y + b.h / 2, '#ff6a00', 10);
+          screenShake = 6;
+          this.bats.splice(i, 1);
+        }
+        else { screenShake = 12; spawnParticles(d.x + d.w / 2, d.y + d.h / 2, '#e64340', 12); this.endGame('defeat'); return; }
       }
     }
 
     // Goal check
     const gx = Math.floor((d.x + d.w / 2 - MAZE_OX) / CELL);
     const gy = Math.floor((d.y + d.h / 2 - MAZE_OY) / CELL);
-    if (gx === this.goalGX && gy === this.goalGY) { this.won = true; this.endGame('victory'); return; }
+    if (gx === this.goalGX && gy === this.goalGY) {
+      spawnParticles(d.x + d.w / 2, d.y + d.h / 2, '#07c160', 20);
+      this.won = true; this.endGame('victory'); return;
+    }
     updatePopups();
   },
 
   endGame(result) { this.gameOver = true; endGame(result); },
 
   render() {
+    ctx.save();
+    applyShake();
     // Background
     ctx.fillStyle = '#F0F4F8'; ctx.fillRect(0, 0, W, H);
     drawClouds(this.frame * 0.5, 0.5);
@@ -1128,11 +1258,11 @@ const NoviceMode = {
           const wx = MAZE_OX + x * CELL, wy = MAZE_OY + y * CELL;
           ctx.fillStyle = '#5B7FA6';
           ctx.beginPath();
-          ctx.roundRect(wx + 1, wy + 1, CELL - 2, CELL - 2, 4);
+          ctx.roundRect(wx + 1, wy + 1, CELL - 2, CELL - 2, 5);
           ctx.fill();
           ctx.fillStyle = '#7B9FC6';
           ctx.beginPath();
-          ctx.roundRect(wx + 2, wy + 2, CELL - 4, CELL / 2 - 2, 3);
+          ctx.roundRect(wx + 2, wy + 2, CELL - 4, CELL / 2 - 2, 4);
           ctx.fill();
         }
       }
@@ -1140,7 +1270,7 @@ const NoviceMode = {
     // Goal (balloon at bottom-right)
     drawBalloon(MAZE_OX + this.goalGX * CELL + CELL / 2, MAZE_OY + this.goalGY * CELL - 10, this.frame);
     // Start marker
-    ctx.fillStyle = 'rgba(7,193,96,0.3)';
+    ctx.fillStyle = 'rgba(7,193,96,0.25)';
     ctx.fillRect(MAZE_OX, MAZE_OY + CELL, CELL, CELL);
     // Tomatoes
     this.tomatoes.forEach(tm => drawTomato(tm.x, tm.y, tm.size, tm.frame));
@@ -1151,7 +1281,9 @@ const NoviceMode = {
     // Dino
     drawDino(this.dino.x, this.dino.y, this.dino.w, this.dino.h, this.dino.facing, 0);
     if (shields > 0) drawShieldAura(this.dino.x, this.dino.y, this.dino.w, this.dino.h, this.frame);
+    drawParticles();
     drawPopups();
+    ctx.restore();
   },
 
   cleanup() {}
@@ -1163,6 +1295,7 @@ const NoviceMode = {
 const HookedMode = {
   level: null, ground: [], plats: [], pipes: [], hedgehogs: [], bats: [], tomatoes: [],
   dino: null, cameraX: 0, frame: 0, gameOver: false, won: false, levelW: 0, balloonX: 0,
+  jumpHeld: false,
 
   init() {
     const L = PLAT_LEVELS[levelIdx];
@@ -1170,12 +1303,12 @@ const HookedMode = {
     this.ground = buildGround(L[1], this.levelW);
     this.plats = L[2].map(p => ({ x: p[0], y: p[1], w: p[2], h: 30 }));
     this.pipes = L[3].map(p => ({ x: p[0], y: GROUND_Y - p[1], w: 50, h: p[1] }));
-    this.hedgehogs = L[4].map(h => ({ x: h[0], y: GROUND_Y - 36, w: 40, h: 36, range: h[1], startX: h[0], dir: 1, frame: 0 }));
+    this.hedgehogs = L[4].map(h => ({ x: h[0], y: GROUND_Y - 40, w: 44, h: 40, range: h[1], startX: h[0], dir: 1, frame: 0 }));
     this.bats = L[5].map(b => ({ x: b[0], y: b[1], w: 50, h: 36, range: b[2], startX: b[0], dir: 1, frame: 0 }));
     this.tomatoes = L[6].map(t => ({ x: t[0], y: t[1], size: 36, collected: false, frame: 0 }));
     this.balloonX = L[7];
     this.dino = { x: 100, y: GROUND_Y - 60, w: 50, h: 60, vx: 0, vy: 0, onGround: false, facing: 'right', squash: 0 };
-    this.cameraX = 0; this.frame = 0; this.gameOver = false; this.won = false;
+    this.cameraX = 0; this.frame = 0; this.gameOver = false; this.won = false; this.jumpHeld = false;
     resetShields();
     scoreEl.hidden = true;
     levelIndicator.hidden = false;
@@ -1186,21 +1319,27 @@ const HookedMode = {
   onJump() {
     if (this.gameOver) return;
     if (this.dino.onGround) {
-      this.dino.vy = -13; this.dino.onGround = false; this.dino.squash = -0.4;
+      this.dino.vy = -15; this.dino.onGround = false; this.dino.squash = -0.4;
+      this.jumpHeld = true;
     }
   },
+
+  onJumpRelease() { this.jumpHeld = false; },
 
   update() {
     if (this.gameOver) return;
     this.frame++;
     const d = this.dino;
-    // Horizontal
-    const speed = 5;
-    if (moveX < 0 || keys['ArrowLeft'] || keys['KeyA']) { d.vx = -speed; d.facing = 'left'; }
-    else if (moveX > 0 || keys['ArrowRight'] || keys['KeyD']) { d.vx = speed; d.facing = 'right'; }
-    else d.vx = 0;
-    // Gravity
-    d.vy += GRAVITY;
+    // Horizontal (smooth acceleration)
+    const targetVx = (moveX < 0 || keys['ArrowLeft'] || keys['KeyA']) ? -5 :
+                     (moveX > 0 || keys['ArrowRight'] || keys['KeyD']) ? 5 : 0;
+    d.vx += (targetVx - d.vx) * 0.25;
+    if (d.vx < -0.5) d.facing = 'left';
+    else if (d.vx > 0.5) d.facing = 'right';
+    // Variable jump gravity
+    const grav = (d.vy < 0 && this.jumpHeld) ? GRAVITY * 0.45 : GRAVITY;
+    d.vy += grav;
+    if (d.vy > 14) d.vy = 14;
     // Move X
     d.x += d.vx;
     d.x = Math.max(0, Math.min(this.levelW - d.w, d.x));
@@ -1260,6 +1399,7 @@ const HookedMode = {
       if (aabb(dBox, { x: tm.x, y: tm.y, w: tm.size, h: tm.size })) {
         addShield();
         spawnPopup(tm.x + tm.size / 2 - this.cameraX, tm.y, shields > 1 ? t('shield_pop_multi', { n: shields }) : t('shield_pop'), '#ff6a00');
+        spawnParticles(tm.x + tm.size / 2 - this.cameraX, tm.y + tm.size / 2, '#ff4444', 8);
         this.tomatoes.splice(i, 1);
       }
     }
@@ -1267,22 +1407,33 @@ const HookedMode = {
     for (let i = this.hedgehogs.length - 1; i >= 0; i--) {
       const h = this.hedgehogs[i];
       if (aabb(dBox, { x: h.x + 4, y: h.y + 4, w: h.w - 8, h: h.h - 8 })) {
-        if (useShield()) { spawnPopup(d.x + d.w / 2 - this.cameraX, d.y, t('shield_pop'), '#ff6a00'); this.hedgehogs.splice(i, 1); }
-        else { this.endGame('defeat'); return; }
+        if (useShield()) {
+          spawnPopup(d.x + d.w / 2 - this.cameraX, d.y, t('shield_pop'), '#ff6a00');
+          spawnParticles(h.x + h.w / 2 - this.cameraX, h.y + h.h / 2, '#ff6a00', 10);
+          screenShake = 6;
+          this.hedgehogs.splice(i, 1);
+        }
+        else { screenShake = 12; spawnParticles(d.x + d.w / 2 - this.cameraX, d.y + d.h / 2, '#e64340', 12); this.endGame('defeat'); return; }
       }
     }
     // Bat collision
     for (let i = this.bats.length - 1; i >= 0; i--) {
       const b = this.bats[i];
       if (aabb(dBox, { x: b.x + 4, y: b.y + 4, w: b.w - 8, h: b.h - 8 })) {
-        if (useShield()) { spawnPopup(d.x + d.w / 2 - this.cameraX, d.y, t('shield_pop'), '#ff6a00'); this.bats.splice(i, 1); }
-        else { this.endGame('defeat'); return; }
+        if (useShield()) {
+          spawnPopup(d.x + d.w / 2 - this.cameraX, d.y, t('shield_pop'), '#ff6a00');
+          spawnParticles(b.x + b.w / 2 - this.cameraX, b.y + b.h / 2, '#ff6a00', 10);
+          screenShake = 6;
+          this.bats.splice(i, 1);
+        }
+        else { screenShake = 12; spawnParticles(d.x + d.w / 2 - this.cameraX, d.y + d.h / 2, '#e64340', 12); this.endGame('defeat'); return; }
       }
     }
     // Fell in pit
-    if (d.y > H + 100) { this.endGame('defeat'); return; }
+    if (d.y > H + 100) { screenShake = 10; this.endGame('defeat'); return; }
     // Reached balloon
     if (d.x + d.w >= this.balloonX && d.x <= this.balloonX + 60) {
+      spawnParticles(this.balloonX - this.cameraX + 30, GROUND_Y - 80, '#07c160', 20);
       this.won = true; this.endGame('victory'); return;
     }
     updatePopups();
@@ -1292,6 +1443,8 @@ const HookedMode = {
 
   render() {
     const cam = this.cameraX;
+    ctx.save();
+    applyShake();
     // Sky
     const sky = ctx.createLinearGradient(0, 0, 0, H);
     sky.addColorStop(0, '#87CEEB'); sky.addColorStop(0.7, '#C8E6F8'); sky.addColorStop(1, '#E8F4FD');
@@ -1319,7 +1472,9 @@ const HookedMode = {
     // Dino
     drawDino(this.dino.x - cam, this.dino.y, this.dino.w, this.dino.h, this.dino.facing, this.dino.squash);
     if (shields > 0) drawShieldAura(this.dino.x - cam + 6, this.dino.y + 4, this.dino.w - 12, this.dino.h - 8, this.frame);
+    drawParticles();
     drawPopups();
+    ctx.restore();
   },
 
   cleanup() {}
@@ -1331,7 +1486,7 @@ const HookedMode = {
 const ExpertMode = {
   islands: [], trampolines: [], portals: [], bats: [], tomatoes: [],
   dino: null, frame: 0, gameOver: false, won: false, balloon: null,
-  portalCooldown: 0,
+  portalCooldown: 0, jumpHeld: false,
 
   init() {
     const L = PORTAL_LEVELS[levelIdx];
@@ -1345,7 +1500,7 @@ const ExpertMode = {
     }
     this.balloon = { x: L[4][0], y: L[4][1] };
     this.dino = { x: 90, y: 780 - 52, w: 44, h: 52, vx: 0, vy: 0, onGround: false, facing: 'right', squash: 0 };
-    this.frame = 0; this.gameOver = false; this.won = false; this.portalCooldown = 0;
+    this.frame = 0; this.gameOver = false; this.won = false; this.portalCooldown = 0; this.jumpHeld = false;
     resetShields();
     scoreEl.hidden = true;
     levelIndicator.hidden = false;
@@ -1356,19 +1511,25 @@ const ExpertMode = {
   onJump() {
     if (this.gameOver) return;
     if (this.dino.onGround) {
-      this.dino.vy = -12; this.dino.onGround = false; this.dino.squash = -0.4;
+      this.dino.vy = -14; this.dino.onGround = false; this.dino.squash = -0.4;
+      this.jumpHeld = true;
     }
   },
+
+  onJumpRelease() { this.jumpHeld = false; },
 
   update() {
     if (this.gameOver) return;
     this.frame++;
     const d = this.dino;
-    const speed = 4.5;
-    if (moveX < 0 || keys['ArrowLeft'] || keys['KeyA']) { d.vx = -speed; d.facing = 'left'; }
-    else if (moveX > 0 || keys['ArrowRight'] || keys['KeyD']) { d.vx = speed; d.facing = 'right'; }
-    else d.vx *= 0.8;
-    d.vy += 0.5;
+    const targetVx = (moveX < 0 || keys['ArrowLeft'] || keys['KeyA']) ? -4.5 :
+                     (moveX > 0 || keys['ArrowRight'] || keys['KeyD']) ? 4.5 : 0;
+    d.vx += (targetVx - d.vx) * 0.2;
+    if (d.vx < -0.5) d.facing = 'left';
+    else if (d.vx > 0.5) d.facing = 'right';
+    const grav = (d.vy < 0 && this.jumpHeld) ? 0.22 : 0.5;
+    d.vy += grav;
+    if (d.vy > 14) d.vy = 14;
     d.x += d.vx; d.y += d.vy;
     d.onGround = false;
     if (d.squash < 0) d.squash += 0.05;
@@ -1382,7 +1543,8 @@ const ExpertMode = {
         // Trampoline check
         this.trampolines.forEach(tr => {
           if (Math.abs((d.x + d.w / 2) - (tr.x + tr.w / 2)) < 30 && Math.abs(isl.y - tr.y) < 5) {
-            d.vy = -19; d.onGround = false; tr.bounce = 10;
+            d.vy = -20; d.onGround = false; tr.bounce = 10;
+            spawnParticles(tr.x + tr.w / 2, tr.y, '#ff6a00', 6);
           }
         });
       }
@@ -1395,8 +1557,8 @@ const ExpertMode = {
         p.frame++;
         const in1 = aabb(d, { x: p.x1 - p.r, y: p.y1 - p.r, w: p.r * 2, h: p.r * 2 });
         const in2 = aabb(d, { x: p.x2 - p.r, y: p.y2 - p.r, w: p.r * 2, h: p.r * 2 });
-        if (in1) { d.x = p.x2 - d.w / 2; d.y = p.y2 - d.h / 2; this.portalCooldown = 30; break; }
-        if (in2) { d.x = p.x1 - d.w / 2; d.y = p.y1 - d.h / 2; this.portalCooldown = 30; break; }
+        if (in1) { d.x = p.x2 - d.w / 2; d.y = p.y2 - d.h / 2; this.portalCooldown = 30; spawnParticles(p.x2, p.y2, '#a855f7', 12); break; }
+        if (in2) { d.x = p.x1 - d.w / 2; d.y = p.y1 - d.h / 2; this.portalCooldown = 30; spawnParticles(p.x1, p.y1, '#a855f7', 12); break; }
       }
     }
     // Bats
@@ -1412,6 +1574,7 @@ const ExpertMode = {
       if (aabb(dBox, { x: tm.x, y: tm.y, w: tm.size, h: tm.size })) {
         addShield();
         spawnPopup(tm.x + tm.size / 2, tm.y, shields > 1 ? t('shield_pop_multi', { n: shields }) : t('shield_pop'), '#ff6a00');
+        spawnParticles(tm.x + tm.size / 2, tm.y + tm.size / 2, '#ff4444', 8);
         this.tomatoes.splice(i, 1);
       }
     }
@@ -1419,14 +1582,20 @@ const ExpertMode = {
     for (let i = this.bats.length - 1; i >= 0; i--) {
       const b = this.bats[i];
       if (aabb(dBox, { x: b.x + 4, y: b.y + 4, w: b.w - 8, h: b.h - 8 })) {
-        if (useShield()) { spawnPopup(d.x + d.w / 2, d.y, t('shield_pop'), '#ff6a00'); this.bats.splice(i, 1); }
-        else { this.endGame('defeat'); return; }
+        if (useShield()) {
+          spawnPopup(d.x + d.w / 2, d.y, t('shield_pop'), '#ff6a00');
+          spawnParticles(b.x + b.w / 2, b.y + b.h / 2, '#ff6a00', 10);
+          screenShake = 6;
+          this.bats.splice(i, 1);
+        }
+        else { screenShake = 12; spawnParticles(d.x + d.w / 2, d.y + d.h / 2, '#e64340', 12); this.endGame('defeat'); return; }
       }
     }
     // Fell off
-    if (d.y > H + 100 || d.x < -100 || d.x > W + 100) { this.endGame('defeat'); return; }
+    if (d.y > H + 100 || d.x < -100 || d.x > W + 100) { screenShake = 10; this.endGame('defeat'); return; }
     // Reached balloon
     if (aabb(dBox, { x: this.balloon.x - 20, y: this.balloon.y - 20, w: 60, h: 80 })) {
+      spawnParticles(this.balloon.x, this.balloon.y, '#07c160', 20);
       this.won = true; this.endGame('victory'); return;
     }
     updatePopups();
@@ -1435,6 +1604,8 @@ const ExpertMode = {
   endGame(result) { this.gameOver = true; endGame(result); },
 
   render() {
+    ctx.save();
+    applyShake();
     // Sky (darker, more magical)
     const sky = ctx.createLinearGradient(0, 0, 0, H);
     sky.addColorStop(0, '#1a1a3e'); sky.addColorStop(0.5, '#3d2b5e'); sky.addColorStop(1, '#5a3d7a');
@@ -1470,7 +1641,9 @@ const ExpertMode = {
     // Dino
     drawDino(this.dino.x, this.dino.y, this.dino.w, this.dino.h, this.dino.facing, this.dino.squash);
     if (shields > 0) drawShieldAura(this.dino.x + 5, this.dino.y + 4, this.dino.w - 10, this.dino.h - 8, this.frame);
+    drawParticles();
     drawPopups();
+    ctx.restore();
   },
 
   cleanup() {}
@@ -1603,6 +1776,7 @@ function restartGame() {
 function loop(ts) {
   if (gameState === 'playing' && handler) {
     handler.update();
+    updateParticles();
     ctx.clearRect(0, 0, W, H);
     handler.render();
   }
@@ -1684,8 +1858,24 @@ function init() {
     updateSoundIcon();
   } catch (e) { applyLanguage('zh'); }
 
-  // Load dino image
+  // Load all game images
   let loadDone = false;
+  const allImgs = [
+    { img: dinoImg, url: DINO_URL },
+    { img: hedgehogImg, url: 'game/assets/刺猬-removebg-preview.webp' },
+  ];
+  // Add background buildings
+  bgBuildings.forEach(url => { const im = new Image(); bgImgs.push(im); allImgs.push({ img: im, url: url }); });
+  bgPillars.forEach(url => { const im = new Image(); pillarImgs.push(im); allImgs.push({ img: im, url: url }); });
+
+  let loaded = 0;
+  function onOneLoaded() {
+    loaded++;
+    const pct = Math.min(100, Math.round(loaded / allImgs.length * 100));
+    progressEl.style.transform = 'scaleX(' + (pct / 100) + ')';
+    loadingText.textContent = t('loading') + ' ' + pct + '%';
+    if (loaded >= allImgs.length) finishLoad();
+  }
   function finishLoad() {
     if (loadDone) return;
     loadDone = true;
@@ -1699,10 +1889,8 @@ function init() {
       animFrame = requestAnimationFrame(loop);
     }, 300);
   }
-  dinoImg.onload = finishLoad;
-  dinoImg.onerror = finishLoad;
-  dinoImg.src = DINO_URL;
-  setTimeout(finishLoad, 3000);
+  allImgs.forEach(({ img, url }) => { img.onload = onOneLoaded; img.onerror = onOneLoaded; img.src = url; });
+  setTimeout(finishLoad, 5000);
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
