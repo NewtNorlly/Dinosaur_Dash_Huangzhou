@@ -4,15 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="description" content="恐龙快跑（黄州府）——穿越黄州名胜古迹的跑酷小游戏">
-  <meta name="theme-color" content="#0a0f1a">
+  <meta name="theme-color" content="#07c160">
   <title>恐龙快跑（黄州府）</title>
-  <link rel="stylesheet" href="dino.css?v=20260812b">
+  <link rel="stylesheet" href="dino.css?v=20260827a">
   <link rel="icon" type="image/png" href="game/assets/小恐龙-removebg-preview.webp">
 </head>
 <body>
 
   <!-- Loading -->
   <div id="loading">
+    <div class="loading-dino">🦕</div>
     <div class="loading-bar"><div id="loading-progress"></div></div>
     <p id="loading-text">加载中…</p>
   </div>
@@ -21,9 +22,14 @@
   <canvas id="game"></canvas>
 
   <!-- Score -->
-  <div id="score">Run,run,run: 0</div>
+  <div id="score">
+    <span class="score-label">分数</span>
+    <span id="score-current">0</span>
+    <span class="score-sep">/</span>
+    <span id="score-target">10</span>
+  </div>
 
-  <!-- Sound + Music -->
+  <!-- Top-center controls (sound / music / flight) -->
   <div id="top-controls">
     <button id="sound-toggle" title="音乐开关" aria-label="音乐开关">🔊</button>
     <button id="btn-music" class="top-btn" title="切歌" aria-label="切歌">🎵</button>
@@ -32,41 +38,95 @@
     </button>
   </div>
 
-  <!-- Start screen -->
+  <!-- Start screen (WeChat mini-game style) -->
   <div id="startscreen" class="overlay">
-    <h1>恐龙快跑</h1>
-    <p class="sub">黄州府</p>
-    <button id="start" class="btn">开 始 游 戏</button>
-    <div class="controls-card">
-      <div class="ctrl-section">
-        <p class="ctrl-section-title">⌨️ 电脑端</p>
-        <div class="key-row"><kbd>空格</kbd><kbd>↑</kbd><span>跳跃</span></div>
-        <div class="key-row"><kbd>←</kbd><kbd>→</kbd><span>左右移动</span></div>
-        <div class="key-row key-row--top"><kbd>M</kbd><span>切换歌曲</span></div>
-        <div class="key-row"><kbd>N</kbd><span>开启 / 关闭音乐</span></div>
-        <div class="key-row"><kbd>B</kbd><span>开启 / 关闭飞翔模式</span></div>
+    <div class="wx-card">
+      <div class="wx-card-header">
+        <div class="wx-logo">🦕</div>
+        <h1 class="wx-title">恐龙快跑</h1>
+        <p class="wx-subtitle">黄州府 · 穿越名胜古迹</p>
       </div>
-      <div class="ctrl-section">
-        <p class="ctrl-section-title">📱 手机 &amp; 平板</p>
-        <div class="key-row"><span class="dot dot--left"></span><span>左半屏 → 动态摇杆移动</span></div>
-        <div class="key-row"><span class="dot dot--right"></span><span>右半屏点按 → 跳跃</span></div>
-        <div class="key-row key-row--top"><button class="icon-hint">🔊</button><span>开启 / 关闭音乐</span></div>
-        <div class="key-row"><button class="icon-hint">🎵</button><span>切换歌曲</span></div>
-        <div class="key-row"><button class="icon-hint flight-hint" aria-hidden="true">✈</button><span>飞翔模式：左右移动，落地后恢复计分</span></div>
+
+      <div class="wx-card-body">
+        <!-- Difficulty selection -->
+        <div class="wx-section">
+          <p class="wx-section-label">选择难度</p>
+          <div class="difficulty-grid">
+            <button class="diff-btn" data-diff="casual">
+              <span class="diff-icon">🌿</span>
+              <span class="diff-name">休闲</span>
+              <span class="diff-desc">轻松慢跑</span>
+            </button>
+            <button class="diff-btn" data-diff="novice">
+              <span class="diff-icon">🍅</span>
+              <span class="diff-name">上手</span>
+              <span class="diff-desc">圣女火光</span>
+            </button>
+            <button class="diff-btn" data-diff="hooked">
+              <span class="diff-icon">🦇</span>
+              <span class="diff-name">入坑</span>
+              <span class="diff-desc">空中危机</span>
+            </button>
+            <button class="diff-btn" data-diff="expert">
+              <span class="diff-icon">🔥</span>
+              <span class="diff-name">专家</span>
+              <span class="diff-desc">极速挑战</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Target score -->
+        <div class="wx-section">
+          <p class="wx-section-label">
+            目标分数
+            <span class="wx-section-hint">设置你的挑战目标</span>
+          </p>
+          <div class="score-stepper">
+            <button class="stepper-btn" id="score-minus" aria-label="减少">−</button>
+            <input type="number" id="target-score-input" value="10" min="1" max="999" inputmode="numeric">
+            <button class="stepper-btn" id="score-plus" aria-label="增加">+</button>
+          </div>
+        </div>
+
+        <!-- Start button -->
+        <button id="start" class="wx-btn-primary">开 始 游 戏</button>
+
+        <!-- Controls hint -->
+        <div class="wx-hint">
+          <span class="wx-hint-item">⌨️ 空格/↑ 跳跃</span>
+          <span class="wx-hint-item">← → 左右移动</span>
+          <span class="wx-hint-item">📱 左屏摇杆 · 右屏跳跃</span>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Game over -->
+  <!-- Settlement screen (victory / defeat) -->
   <div id="gameover" class="overlay" hidden>
-    <h1>游戏结束</h1>
-    <p id="final-score"></p>
-    <button id="restart" class="btn">再来一局</button>
+    <div class="wx-card wx-card--result">
+      <div class="result-icon" id="result-icon">🦕</div>
+      <h1 class="result-title" id="result-title">游戏结束</h1>
+      <div class="result-score-box">
+        <div class="result-score-row">
+          <span class="result-score-label">本次得分</span>
+          <span class="result-score-value" id="final-score">0</span>
+        </div>
+        <div class="result-score-row">
+          <span class="result-score-label">目标分数</span>
+          <span class="result-score-value" id="final-target">10</span>
+        </div>
+      </div>
+      <p class="result-msg" id="result-msg"></p>
+      <div class="result-btns">
+        <button id="btn-home" class="wx-btn-secondary">返回首页</button>
+        <button id="restart" class="wx-btn-primary">再来一次</button>
+      </div>
+    </div>
   </div>
 
   <!-- Mobile touch surface (fullscreen, handles dynamic joystick + jump) -->
   <div id="mobile-controls" class="mobile-ctrl"></div>
 
-  <script src="dino.js?v=20260812d"></script>
+  <script src="dino.js?v=20260827a"></script>
 </body>
 </html>

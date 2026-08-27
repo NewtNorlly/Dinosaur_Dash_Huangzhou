@@ -1,0 +1,25 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Preview / temp
+.preview/
+screenshot_*.png
+preview_*.png
+
+# Python cache
+__pycache__/
+*.pyc
+
+# WeChat DevTools local config
+project.private.config.json
