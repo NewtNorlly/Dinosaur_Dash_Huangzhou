@@ -21,5 +21,6 @@ preview_*.png
 __pycache__/
 *.pyc
 
-# WeChat DevTools local config
+# WeChat DevTools config (contains AppID)
+project.config.json
 project.private.config.json
