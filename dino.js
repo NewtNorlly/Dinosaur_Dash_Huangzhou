@@ -140,6 +140,20 @@
   let gameResult = null;   // "victory" | "defeat"
   let worldSpeed = 0;      // unified obstacle speed for hooked/expert
 
+  // ── Visual juice state ──
+  let screenShake = 0;     // remaining shake magnitude (px)
+  let screenFlash = 0;     // remaining flash alpha (0..1)
+  let flashColor = "255,80,10";   // orange-red for shield break
+  let clouds = [];         // parallax cloud layers
+  let dustParticles = [];  // landing dust puffs
+  let scorePopups = [];    // floating "+1" texts
+  let confetti = [];       // victory confetti
+  let sparkles = [];       // tomato collect / shield burst sparkles
+  let idleTime = 0;        // time since last ground movement (for idle anim)
+  let wasJumping = false;  // previous-frame jump state (for landing detection)
+  let dinoSquash = 0;      // 0 = normal, >0 = squash (landing), <0 = stretch (jumping)
+  let scoreBumpTimer = 0;  // cooldown for score bump animation
+
   /* ── Dynamic joystick state ── */
   let joyPointerId = null;
   let joyOriginX = 0;
@@ -352,6 +366,200 @@
     totalBgWidth = x;
   }
 
+  /* ═══════════════════════════ Clouds (parallax) ═══════════════════════════ */
+
+  function initClouds() {
+    clouds = [];
+    for (let i = 0; i < 6; i++) {
+      clouds.push({
+        x: Math.random() * W,
+        y: 40 + Math.random() * 200,
+        scale: 0.6 + Math.random() * 0.7,
+        speed: 12 + Math.random() * 20,
+        opacity: 0.5 + Math.random() * 0.35,
+      });
+    }
+  }
+
+  function drawCloud(c) {
+    const s = c.scale;
+    ctx.fillStyle = "rgba(255,255,255," + c.opacity + ")";
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, 22 * s, 0, Math.PI * 2);
+    ctx.arc(c.x + 26 * s, c.y - 8 * s, 28 * s, 0, Math.PI * 2);
+    ctx.arc(c.x + 55 * s, c.y, 20 * s, 0, Math.PI * 2);
+    ctx.arc(c.x + 30 * s, c.y + 6 * s, 24 * s, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  /* ═══════════════════════════ Visual Effects ═══════════════════════════ */
+
+  function triggerShake(amount) { screenShake = Math.max(screenShake, amount); }
+
+  function triggerFlash(alpha, color) {
+    screenFlash = Math.max(screenFlash, alpha);
+    if (color) flashColor = color;
+  }
+
+  function spawnDust(x, y) {
+    for (let i = 0; i < 8; i++) {
+      dustParticles.push({
+        x: x + (Math.random() - 0.5) * 30,
+        y: y,
+        vx: -40 - Math.random() * 80,
+        vy: -20 - Math.random() * 50,
+        life: 0.35 + Math.random() * 0.2,
+        maxLife: 0.55,
+        size: 6 + Math.random() * 10,
+      });
+    }
+  }
+
+  function spawnScorePopup(x, y, text, color) {
+    scorePopups.push({
+      x: x, y: y,
+      vy: -60,
+      life: 0.8,
+      maxLife: 0.8,
+      text: text || "+1",
+      color: color || "#07c160",
+    });
+  }
+
+  function spawnSparkles(x, y, count, color) {
+    for (let i = 0; i < (count || 12); i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 80 + Math.random() * 160;
+      sparkles.push({
+        x: x, y: y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 40,
+        life: 0.4 + Math.random() * 0.3,
+        maxLife: 0.7,
+        size: 3 + Math.random() * 5,
+        color: color || null,
+      });
+    }
+  }
+
+  function spawnConfetti() {
+    const colors = ["#07c160", "#ff976a", "#1989fa", "#ffd200", "#ee0a24", "#7c3aed"];
+    for (let i = 0; i < 80; i++) {
+      confetti.push({
+        x: W / 2 + (Math.random() - 0.5) * 200,
+        y: H / 2 - 100,
+        vx: (Math.random() - 0.5) * 400,
+        vy: -200 - Math.random() * 300,
+        gravity: 600 + Math.random() * 200,
+        life: 2.5 + Math.random() * 1.5,
+        maxLife: 4,
+        size: 6 + Math.random() * 8,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rot: Math.random() * Math.PI * 2,
+        vrot: (Math.random() - 0.5) * 10,
+      });
+    }
+  }
+
+  function updateDust(dt) {
+    for (let i = dustParticles.length - 1; i >= 0; i--) {
+      const p = dustParticles[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 120 * dt;
+      p.life -= dt;
+      if (p.life <= 0) dustParticles.splice(i, 1);
+    }
+  }
+
+  function updateScorePopups(dt) {
+    for (let i = scorePopups.length - 1; i >= 0; i--) {
+      const p = scorePopups[i];
+      p.y += p.vy * dt;
+      p.vy *= 0.96;
+      p.life -= dt;
+      if (p.life <= 0) scorePopups.splice(i, 1);
+    }
+  }
+
+  function updateSparkles(dt) {
+    for (let i = sparkles.length - 1; i >= 0; i--) {
+      const p = sparkles[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 200 * dt;
+      p.vx *= 0.96;
+      p.life -= dt;
+      if (p.life <= 0) sparkles.splice(i, 1);
+    }
+  }
+
+  function updateConfetti(dt) {
+    for (let i = confetti.length - 1; i >= 0; i--) {
+      const p = confetti[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += p.gravity * dt;
+      p.vx *= 0.99;
+      p.rot += p.vrot * dt;
+      p.life -= dt;
+      if (p.life <= 0 || p.y > H + 50) confetti.splice(i, 1);
+    }
+  }
+
+  function drawDust() {
+    for (const p of dustParticles) {
+      const alpha = Math.max(0, p.life / p.maxLife) * 0.5;
+      ctx.fillStyle = "rgba(210,200,180," + alpha + ")";
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawScorePopups() {
+    ctx.textAlign = "center";
+    ctx.font = "bold 36px 'Times New Roman', 'SimSun', '宋体', serif";
+    for (const p of scorePopups) {
+      const alpha = Math.max(0, p.life / p.maxLife);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.color;
+      ctx.strokeStyle = "rgba(255,255,255,0.8)";
+      ctx.lineWidth = 4;
+      ctx.strokeText(p.text, p.x, p.y);
+      ctx.fillText(p.text, p.x, p.y);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawSparkles() {
+    for (const p of sparkles) {
+      const alpha = Math.max(0, p.life / p.maxLife);
+      const col = p.color || "255,220,100";
+      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+      g.addColorStop(0, "rgba(" + col + "," + alpha + ")");
+      g.addColorStop(1, "rgba(" + col + ",0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * (0.5 + alpha * 0.5), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawConfetti() {
+    for (const p of confetti) {
+      const alpha = Math.min(1, p.life / 0.5);
+      ctx.globalAlpha = alpha;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  }
+
   /* ═══════════════════════════ Scaling ═══════════════════════════ */
 
   function resizeCanvas() {
@@ -468,6 +676,9 @@
     flightState = "grounded";
     hasFireShield = false;
     fireParticles = [];
+    dinoSquash = 0;
+    wasJumping = false;
+    idleTime = 0;
     updateFlightButton();
   }
 
@@ -572,6 +783,10 @@
   function activateFireShield() {
     hasFireShield = true;
     fireParticles = [];
+    // Sparkle burst at dino position
+    if (dino) {
+      spawnSparkles(dino.x + dino.w / 2, dino.y + dino.h / 2, 16, "255,180,40");
+    }
   }
 
   function deactivateFireShield() {
@@ -588,6 +803,10 @@
         size: 8 + Math.random() * 12,
       });
     }
+    // Screen flash + sparkles + shake for impact feedback
+    triggerFlash(0.35, "255,100,20");
+    triggerShake(8);
+    spawnSparkles(dino.x + dino.w / 2, dino.y + dino.h / 2, 10, "255,120,30");
   }
 
   function updateFireParticles(dt) {
@@ -604,8 +823,17 @@
   /* ═══════════════════════════ Rendering ═══════════════════════════ */
 
   function drawBackground() {
-    ctx.fillStyle = SKY_COLOR;
+    // Sky gradient
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+    skyGrad.addColorStop(0, "#87cefa");
+    skyGrad.addColorStop(0.6, "#b8e0f5");
+    skyGrad.addColorStop(1, "#d4edf8");
+    ctx.fillStyle = skyGrad;
     ctx.fillRect(0, 0, W, H);
+
+    // Parallax clouds
+    for (const c of clouds) drawCloud(c);
+
     if (!totalBgWidth) return;
     const offset = bgX % totalBgWidth;
     for (const spr of bgSprites) {
@@ -615,15 +843,49 @@
         ctx.drawImage(spr.img, sx, 0, spr.w, spr.h);
       }
     }
+
+    // Ground shadow line
+    ctx.fillStyle = "rgba(0,0,0,0.08)";
+    ctx.fillRect(0, GROUND_Y - 4, W, 8);
+  }
+
+  function drawDinoShadow() {
+    if (!dino) return;
+    const groundY = GROUND_Y;
+    const heightAboveGround = groundY - (dino.y + dino.h);
+    const t = Math.min(1, heightAboveGround / 300);
+    const shadowW = dino.w * (1 - t * 0.4);
+    const shadowH = 14 * (1 - t * 0.5);
+    const alpha = 0.25 * (1 - t * 0.6);
+    const cx = dino.x + dino.w / 2;
+    ctx.fillStyle = "rgba(0,0,0," + alpha + ")";
+    ctx.beginPath();
+    ctx.ellipse(cx, groundY - 2, shadowW / 2, shadowH / 2, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   function drawDino() {
     const asset = assets["小恐龙-removebg-preview"];
+    // Squash & stretch: squash on landing (positive), stretch on jump (negative)
+    const sq = dinoSquash;
+    const scaleX = 1 + sq * 0.15;
+    const scaleY = 1 - sq * 0.2;
+    const drawW = dino.w * scaleX;
+    const drawH = dino.h * scaleY;
+    const drawX = dino.x + (dino.w - drawW) / 2;
+    const drawY = dino.y + (dino.h - drawH);
+
+    // Idle breathing bob when grounded
+    let idleBob = 0;
+    if (!dino.jumping && !isFlightActive() && gameState === "playing") {
+      idleBob = Math.sin(idleTime * 2) * 2;
+    }
+
     if (asset && asset.img) {
-      ctx.drawImage(asset.img, dino.x, dino.y, dino.w, dino.h);
+      ctx.drawImage(asset.img, drawX, drawY + idleBob, drawW, drawH);
     } else {
       ctx.fillStyle = "#2d5a27";
-      ctx.fillRect(dino.x, dino.y, dino.w, dino.h);
+      ctx.fillRect(drawX, drawY + idleBob, drawW, drawH);
     }
   }
 
@@ -807,6 +1069,14 @@
   function drawScore() {
     scoreCurrentEl.textContent = score;
     scoreTargetEl.textContent = targetScore;
+    // Bump animation on score change
+    if (scoreBumpTimer <= 0) {
+      scoreBumpTimer = 0.12;
+      scoreCurrentEl.classList.remove("bump");
+      void scoreCurrentEl.offsetWidth; // reflow to restart animation
+      scoreCurrentEl.classList.add("bump");
+      setTimeout(function () { scoreCurrentEl.classList.remove("bump"); }, 150);
+    }
   }
 
   /* ═══════════════════════════ Game Loop ═══════════════════════════ */
@@ -815,6 +1085,23 @@
     const cappedDt = Math.min(dt, 0.1);
     fireAnimTime += cappedDt;
     batFlapTime += cappedDt;
+    idleTime += cappedDt;
+    if (scoreBumpTimer > 0) scoreBumpTimer -= cappedDt;
+
+    // Decay screen effects
+    if (screenShake > 0) screenShake = Math.max(0, screenShake - cappedDt * 40);
+    if (screenFlash > 0) screenFlash = Math.max(0, screenFlash - cappedDt * 2.5);
+
+    // Parallax clouds
+    for (const c of clouds) {
+      c.x -= c.speed * cappedDt;
+      if (c.x + 80 * c.scale < 0) {
+        c.x = W + 40;
+        c.y = 40 + Math.random() * 200;
+        c.scale = 0.6 + Math.random() * 0.7;
+        c.opacity = 0.5 + Math.random() * 0.35;
+      }
+    }
 
     // Background scroll
     bgX += currentDiff.bgSpeed * cappedDt;
@@ -832,17 +1119,36 @@
         updateFlightButton();
       }
     } else if (dino.jumping) {
+      // Stretch on ascent, squash slightly on descent
+      if (dino.vy < 0) dinoSquash = -0.3;
+      else dinoSquash = 0.1;
       dino.y += dino.vy * cappedDt * 60;
       dino.vy += GRAVITY * cappedDt * 60;
       if (dino.y >= GROUND_Y - dino.h) {
         dino.y = GROUND_Y - dino.h;
         dino.jumping = false;
         dino.vy = 0;
+        // Landing: squash + dust
+        dinoSquash = 0.5;
+        spawnDust(dino.x + dino.w / 2, GROUND_Y - 4);
       }
+    } else {
+      idleTime += 0; // already incremented above
     }
+
+    // Detect landing moment (was in air, now on ground)
+    if (wasJumping && !dino.jumping && !isFlightActive()) {
+      // Landing effects already applied above
+    }
+    wasJumping = dino.jumping;
+
+    // Decay squash/stretch
+    dinoSquash *= Math.pow(0.001, cappedDt); // fast exponential decay
+    if (Math.abs(dinoSquash) < 0.01) dinoSquash = 0;
 
     dino.x += moveInput * MOVE_SPEED * cappedDt;
     dino.x = Math.max(0, Math.min(W - dino.w, dino.x));
+    if (moveInput !== 0) idleTime = 0;
 
     // ── Spawn logic per difficulty ──
     spawnTimer -= cappedDt;
@@ -869,7 +1175,11 @@
       obs.x -= obs.speed * cappedDt;
       if (!obs.scored && obs.x + obs.w < dino.x) {
         obs.scored = true;
-        if (!flying) { score++; drawScore(); }
+        if (!flying) {
+          score++;
+          spawnScorePopup(obs.x + obs.w / 2, obs.y - 10, "+1", "#07c160");
+          drawScore();
+        }
       }
     }
 
@@ -878,7 +1188,11 @@
       b.x -= b.speed * cappedDt;
       if (!b.scored && b.x + b.w < dino.x) {
         b.scored = true;
-        if (!flying) { score++; drawScore(); }
+        if (!flying) {
+          score++;
+          spawnScorePopup(b.x + b.w / 2, b.y - 10, "+1", "#7c3aed");
+          drawScore();
+        }
       }
     }
 
@@ -892,8 +1206,12 @@
     bats = bats.filter(b => b.x + b.w > -50);
     tomatoes = tomatoes.filter(t => t.x + t.w > -50 && !t.collected);
 
-    // Update fire particles
+    // Update particles
     updateFireParticles(cappedDt);
+    updateDust(cappedDt);
+    updateScorePopups(cappedDt);
+    updateSparkles(cappedDt);
+    updateConfetti(cappedDt);
 
     // ── Collision: ground hedgehogs ──
     if (!flying) {
@@ -902,8 +1220,11 @@
           if (hasFireShield) {
             // Shield absorbs the hit
             deactivateFireShield();
+            spawnSparkles(obstacles[i].x + obstacles[i].w / 2, obstacles[i].y + obstacles[i].h / 2, 8, "255,160,40");
             obstacles.splice(i, 1);
           } else {
+            triggerShake(16);
+            triggerFlash(0.5, "255,50,50");
             endGame("defeat");
             return;
           }
@@ -916,8 +1237,11 @@
           if (hasFireShield) {
             // Shield absorbs the bat hit too
             deactivateFireShield();
+            spawnSparkles(bats[i].x + bats[i].w / 2, bats[i].y + bats[i].h / 2, 8, "120,60,180");
             bats.splice(i, 1);
           } else {
+            triggerShake(16);
+            triggerFlash(0.5, "255,50,50");
             endGame("defeat");
             return;
           }
@@ -929,6 +1253,7 @@
         if (airCollide(dino, tomatoes[i])) {
           tomatoes[i].collected = true;
           activateFireShield();
+          spawnScorePopup(tomatoes[i].x + tomatoes[i].w / 2, tomatoes[i].y - 10, "护盾!", "#ff6a00");
           tomatoes.splice(i, 1);
         }
       }
@@ -942,25 +1267,55 @@
   }
 
   function render() {
+    ctx.save();
+
+    // Screen shake
+    if (screenShake > 0) {
+      const sx = (Math.random() - 0.5) * screenShake * 2;
+      const sy = (Math.random() - 0.5) * screenShake * 2;
+      ctx.translate(sx, sy);
+    }
+
     drawBackground();
+    drawDinoShadow();
     drawObstacles();
     for (const t of tomatoes) drawTomato(t);
     for (const b of bats) drawBat(b);
+    drawDust();
     drawDino();
     drawFireShield();
     drawFireParticles();
+    drawSparkles();
+    drawScorePopups();
+    drawConfetti();
+
+    ctx.restore();
+
+    // Screen flash overlay (not affected by shake)
+    if (screenFlash > 0) {
+      ctx.fillStyle = "rgba(" + flashColor + "," + screenFlash + ")";
+      ctx.fillRect(0, 0, W, H);
+    }
   }
 
   function gameLoop(timestamp) {
-    if (gameState !== "playing") {
-      animId = requestAnimationFrame(gameLoop);
-      return;
-    }
     if (lastTime === 0) lastTime = timestamp;
-    const dt = (timestamp - lastTime) / 1000;
+    const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
     lastTime = timestamp;
-    update(dt);
-    render();
+
+    if (gameState === "playing") {
+      update(dt);
+      render();
+    } else if (gameState === "over") {
+      // Keep animating confetti and screen effects on settlement screen
+      fireAnimTime += dt;
+      if (screenShake > 0) screenShake = Math.max(0, screenShake - dt * 40);
+      if (screenFlash > 0) screenFlash = Math.max(0, screenFlash - dt * 2.5);
+      updateConfetti(dt);
+      updateSparkles(dt);
+      updateFireParticles(dt);
+      render();
+    }
     animId = requestAnimationFrame(gameLoop);
   }
 
@@ -978,6 +1333,10 @@
     tomatoes = [];
     bats = [];
     fireParticles = [];
+    dustParticles = [];
+    scorePopups = [];
+    confetti = [];
+    sparkles = [];
     score = 0;
     bgX = 0;
     spawnTimer = 0.6;
@@ -985,7 +1344,12 @@
     hasFireShield = false;
     fireAnimTime = 0;
     batFlapTime = 0;
+    idleTime = 0;
+    screenShake = 0;
+    screenFlash = 0;
+    scoreBumpTimer = 0;
     gameResult = null;
+    initClouds();
     drawScore();
   }
 
@@ -997,8 +1361,10 @@
     mobileCtrls.style.display = "none";
     topCtrls.style.display = "none";
     scoreEl.style.display = "none";
+    initClouds();
     drawBackground();
     resetDino();
+    drawDinoShadow();
     drawDino();
   }
 
@@ -1038,13 +1404,20 @@
       resultIconEl.textContent = "🏆";
       resultTitleEl.textContent = "挑战成功！";
       resultTitleEl.className = "result-title victory";
+      gameOverScreen.querySelector(".wx-card--result").classList.add("wx-card--victory");
+      gameOverScreen.querySelector(".wx-card--result").classList.remove("wx-card--defeat");
       resultMsgEl.textContent = "太棒了！你成功达成了 " + targetScore + " 分目标，" +
         (currentDiff.name) + "难度通关！";
       finalScoreEl.classList.add("highlight");
+      // Celebration!
+      spawnConfetti();
+      triggerFlash(0.3, "255,215,0");
     } else {
       resultIconEl.textContent = "💥";
       resultTitleEl.textContent = "游戏结束";
       resultTitleEl.className = "result-title defeat";
+      gameOverScreen.querySelector(".wx-card--result").classList.add("wx-card--defeat");
+      gameOverScreen.querySelector(".wx-card--result").classList.remove("wx-card--victory");
       var diff = targetScore - score;
       resultMsgEl.textContent = diff > 0
         ? "还差 " + diff + " 分就能达成目标，再接再厉！"
@@ -1130,6 +1503,7 @@
         if (!isFlightActive() && !dino.jumping) {
           dino.jumping = true;
           dino.vy = JUMP_VEL;
+          dinoSquash = -0.4;
         }
       }
       if (e.code === "KeyM" && !e.repeat) cycleBGM();
@@ -1181,6 +1555,7 @@
         if (!isFlightActive() && !dino.jumping) {
           dino.jumping = true;
           dino.vy = JUMP_VEL;
+          dinoSquash = -0.4;
         }
       }
     });

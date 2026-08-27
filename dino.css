@@ -15,7 +15,10 @@
   --wx-orange: #ff976a;
   --wx-red: #ee0a24;
   --wx-blue: #1989fa;
+  /* Strong custom easing curves (Emil Kowalski) */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 html, body {
@@ -72,6 +75,7 @@ canvas {
 #loading-text {
   margin-top: 14px;
   font-size: 14px; color: rgba(255,255,255,0.85); letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Score UI (top-left, WeChat style pill) ── */
@@ -81,15 +85,22 @@ canvas {
   padding: 8px 18px;
   background: rgba(255,255,255,0.92);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: 20px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.12);
   font-size: clamp(16px, 2.4vw, 24px); font-weight: 700;
   color: var(--wx-text);
+  font-variant-numeric: tabular-nums;
   pointer-events: none;
   transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
 }
 .score-label { font-size: 0.55em; font-weight: 500; color: var(--wx-text-secondary); margin-right: 4px; }
-#score-current { color: var(--wx-green); font-size: 1.15em; }
+#score-current {
+  color: var(--wx-green); font-size: 1.15em;
+  display: inline-block;
+  transition: transform 120ms var(--ease-spring);
+}
+#score-current.bump { transform: scale(1.25); }
 .score-sep { color: var(--wx-text-hint); font-weight: 400; }
 #score-target { color: var(--wx-text-secondary); font-size: 0.85em; }
 #score.is-paused { opacity: 0.65; transform: scale(0.96); transform-origin: left top; }
@@ -111,6 +122,7 @@ canvas {
   border: none; border-radius: 50%;
   background: rgba(255,255,255,0.92);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 2px 10px rgba(0,0,0,0.12);
   font-size: 19px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
@@ -141,6 +153,7 @@ canvas {
   align-items: center; justify-content: center;
   background: rgba(0,0,0,0.45);
   backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   color: var(--wx-text);
   text-align: center;
   padding: 20px;
@@ -155,7 +168,7 @@ canvas {
 .overlay > * {
   opacity: 1;
   transform: translateY(0) scale(1);
-  transition: opacity 240ms var(--ease-out), transform 240ms var(--ease-out);
+  transition: opacity 280ms var(--ease-out), transform 280ms var(--ease-out);
 }
 .overlay.is-entering > *,
 .overlay.is-leaving > * { opacity: 0; transform: translateY(16px) scale(0.97); }
@@ -180,22 +193,44 @@ canvas {
   font-size: 56px;
   margin-bottom: 8px;
   filter: drop-shadow(0 4px 8px rgba(7,193,96,0.25));
+  animation: logo-float 3s ease-in-out infinite;
+}
+@keyframes logo-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
 }
 .wx-title {
   font-size: clamp(26px, 5vw, 36px);
   font-weight: 800;
   color: var(--wx-text);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.01em;
   margin: 0;
 }
 .wx-subtitle {
   font-size: 14px;
   color: var(--wx-text-secondary);
   margin-top: 6px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
 }
 .wx-card-body {
   padding: 20px 28px 28px;
+}
+
+/* Stagger entrance for start screen sections */
+.overlay.is-entering .wx-card-header {
+  transition-delay: 40ms;
+}
+.overlay.is-entering .wx-section:nth-child(1) {
+  transition-delay: 80ms;
+}
+.overlay.is-entering .wx-section:nth-child(2) {
+  transition-delay: 130ms;
+}
+.overlay.is-entering .wx-btn-primary {
+  transition-delay: 180ms;
+}
+.overlay.is-entering .wx-hint {
+  transition-delay: 220ms;
 }
 
 /* ── Section ── */
@@ -234,7 +269,8 @@ canvas {
   border-radius: 14px;
   background: #fafafa;
   cursor: pointer;
-  transition: all 180ms var(--ease-out);
+  transition: border-color 180ms var(--ease-out), background-color 180ms var(--ease-out),
+              box-shadow 180ms var(--ease-out), transform 120ms var(--ease-out);
   font-family: inherit;
 }
 .diff-btn .diff-icon { font-size: 28px; line-height: 1; margin-bottom: 2px; }
@@ -245,9 +281,18 @@ canvas {
   border-color: var(--wx-green);
   background: var(--wx-green-light);
   box-shadow: 0 2px 12px rgba(7,193,96,0.2);
+  transform: scale(1.02);
 }
 .diff-btn.selected .diff-name { color: var(--wx-green-dark); }
 .diff-btn.selected .diff-desc { color: var(--wx-green); }
+.diff-btn.selected .diff-icon {
+  animation: diff-pop 300ms var(--ease-spring);
+}
+@keyframes diff-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
 @media (hover: hover) and (pointer: fine) {
   .diff-btn:hover { border-color: #c8c8c8; background: #f5f5f5; }
   .diff-btn.selected:hover { border-color: var(--wx-green); background: var(--wx-green-light); }
@@ -273,11 +318,11 @@ canvas {
   color: var(--wx-green);
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: background-color 150ms ease;
+  transition: background-color 120ms ease, transform 100ms var(--ease-out);
   font-family: inherit;
   font-weight: 300;
 }
-.stepper-btn:active { background: #ebedf0; }
+.stepper-btn:active { background: #ebedf0; transform: scale(0.92); }
 #target-score-input {
   width: 80px; height: 48px;
   border: none;
@@ -289,8 +334,10 @@ canvas {
   color: var(--wx-text);
   background: #fff;
   font-family: inherit;
+  font-variant-numeric: tabular-nums;
   -moz-appearance: textfield;
   outline: none;
+  transition: background-color 120ms ease;
 }
 #target-score-input::-webkit-outer-spin-button,
 #target-score-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -310,8 +357,18 @@ canvas {
   transition: transform 150ms var(--ease-out), box-shadow 150ms ease, opacity 150ms ease;
   font-family: inherit;
   margin-top: 4px;
+  position: relative;
+  overflow: hidden;
 }
-.wx-btn-primary:active { transform: scale(0.98); box-shadow: 0 2px 8px rgba(7,193,96,0.3); }
+.wx-btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, transparent 50%);
+  pointer-events: none;
+}
+.wx-btn-primary:active { transform: scale(0.97); box-shadow: 0 2px 8px rgba(7,193,96,0.3); }
 .wx-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 @media (hover: hover) and (pointer: fine) {
   .wx-btn-primary:hover { box-shadow: 0 6px 20px rgba(7,193,96,0.45); }
@@ -326,10 +383,13 @@ canvas {
   color: var(--wx-text);
   font-size: 17px; font-weight: 600;
   cursor: pointer;
-  transition: all 150ms ease;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 120ms var(--ease-out);
   font-family: inherit;
 }
-.wx-btn-secondary:active { background: #f7f8fa; transform: scale(0.98); }
+.wx-btn-secondary:active { background: #f7f8fa; transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) {
+  .wx-btn-secondary:hover { border-color: #c8c8c8; background: #fafafa; }
+}
 
 /* ── Hint row ── */
 .wx-hint {
@@ -349,17 +409,51 @@ canvas {
   text-align: center;
 }
 .result-icon {
-  font-size: 64px;
+  font-size: 72px;
   padding-top: 36px;
   margin-bottom: 8px;
+  display: inline-block;
+}
+.overlay.is-entering .result-icon {
+  animation: result-icon-pop 500ms var(--ease-spring) 100ms both;
+}
+@keyframes result-icon-pop {
+  0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+  60% { transform: scale(1.2) rotate(5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
 }
 .result-title {
   font-size: clamp(24px, 5vw, 32px);
   font-weight: 800;
   margin-bottom: 20px;
+  letter-spacing: 0.01em;
 }
 .result-title.victory { color: var(--wx-green); }
 .result-title.defeat { color: var(--wx-text); }
+
+/* Victory card gets a celebratory bounce-in */
+.overlay.is-entering .wx-card--result.wx-card--victory {
+  animation: card-bounce-in 500ms var(--ease-spring) both;
+}
+@keyframes card-bounce-in {
+  0% { transform: translateY(20px) scale(0.9); opacity: 0; }
+  60% { transform: translateY(-4px) scale(1.02); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* Defeat card gets a subtle shake */
+.overlay.is-entering .wx-card--result.wx-card--defeat {
+  animation: card-shake-in 400ms var(--ease-out) both;
+}
+@keyframes card-shake-in {
+  0% { transform: translateX(0) scale(0.95); opacity: 0; }
+  30% { transform: translateX(-8px) scale(0.98); opacity: 1; }
+  45% { transform: translateX(7px) scale(0.99); }
+  60% { transform: translateX(-5px); }
+  75% { transform: translateX(3px); }
+  100% { transform: translateX(0) scale(1); opacity: 1; }
+}
+
 .result-score-box {
   margin: 0 28px 16px;
   padding: 18px 20px;
@@ -383,6 +477,7 @@ canvas {
   font-size: 22px;
   font-weight: 800;
   color: var(--wx-text);
+  font-variant-numeric: tabular-nums;
 }
 .result-score-value.highlight { color: var(--wx-green); }
 .result-msg {
@@ -491,9 +586,16 @@ canvas {
   #score { top: 62px; left: 12px; padding: 6px 14px; }
 }
 
+/* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
   #loading, #score, .overlay, .overlay > *, .top-btn,
   #top-controls #sound-toggle, .wx-btn-primary, .wx-btn-secondary,
-  .diff-btn, .dyn-joy { transition-duration: 140ms; }
-  .loading-dino { animation: none; }
+  .diff-btn, .dyn-joy, .stepper-btn { transition-duration: 140ms; }
+  .loading-dino, .wx-logo { animation: none; }
+  .overlay.is-entering .result-icon,
+  .overlay.is-entering .wx-card--result,
+  .overlay.is-entering .wx-card--result.wx-card--victory,
+  .overlay.is-entering .wx-card--result.wx-card--defeat { animation: none; }
+  .diff-btn.selected .diff-icon { animation: none; }
+  #score-current.bump { transition: none; transform: none; }
 }
