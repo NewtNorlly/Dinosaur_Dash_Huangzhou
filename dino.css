@@ -69,6 +69,12 @@ canvas {
   margin-bottom: 28px;
   animation: dino-bounce 0.8s ease-in-out infinite;
 }
+.loading-dino img {
+  width: 96px;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.2));
+}
 @keyframes dino-bounce {
   0%, 100% { transform: translateY(0) scale(1); }
   50% { transform: translateY(-14px) scale(1.05); }
@@ -136,7 +142,7 @@ canvas {
 }
 #score.is-paused { opacity: 0.65; transform: scale(0.96); transform-origin: left top; }
 #score.is-paused::after {
-  content: " · 飞翔中";
+  content: var(--flight-label, " · 飞翔中");
   font-size: 0.5em;
   color: var(--wx-blue);
   white-space: nowrap;
@@ -225,6 +231,12 @@ canvas {
   margin-bottom: 10px;
   filter: drop-shadow(0 4px 10px rgba(7,193,96,0.25));
   animation: logo-float 3s ease-in-out infinite;
+}
+.wx-logo img {
+  width: 110px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
 }
 @keyframes logo-float {
   0%, 100% { transform: translateY(0); }
@@ -421,6 +433,90 @@ canvas {
 @media (hover: hover) and (pointer: fine) {
   .wx-btn-secondary:hover { border-color: #c8c8c8; background: #fafafa; }
 }
+
+/* ── Settings row (language + care mode) ── */
+.wx-settings {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.lang-switcher {
+  display: flex;
+  gap: 4px;
+  background: #f2f3f5;
+  border-radius: 10px;
+  padding: 3px;
+}
+.lang-btn {
+  border: none;
+  background: transparent;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--wx-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 150ms ease, color 150ms ease, transform 100ms var(--ease-out);
+}
+.lang-btn:active { transform: scale(0.94); }
+.lang-btn.active {
+  background: #fff;
+  color: var(--wx-green-dark);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+.care-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1.5px solid var(--wx-border);
+  background: #fff;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--wx-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 100ms var(--ease-out);
+}
+.care-btn:active { transform: scale(0.96); }
+.care-btn[aria-pressed="true"] {
+  background: var(--wx-green-light);
+  border-color: var(--wx-green);
+  color: var(--wx-green-dark);
+}
+.care-icon { font-size: 18px; }
+
+/* ── Care mode (elderly-friendly): 1.4× scale per WeChat guidelines ── */
+body.care-mode .wx-title { font-size: clamp(48px, 9vw, 66px); }
+body.care-mode .wx-subtitle { font-size: 26px; }
+body.care-mode .wx-logo { font-size: 96px; }
+body.care-mode .wx-section-label { font-size: 28px; }
+body.care-mode .wx-section-hint { font-size: 21px; }
+body.care-mode .diff-btn .diff-icon { font-size: 52px; }
+body.care-mode .diff-btn .diff-name { font-size: 28px; }
+body.care-mode .diff-btn .diff-desc { font-size: 20px; }
+body.care-mode .diff-btn { padding: 22px 10px 20px; border-width: 2.5px; }
+body.care-mode .stepper-btn { width: 76px; height: 72px; font-size: 44px; }
+body.care-mode #target-score-input { width: 130px; height: 72px; font-size: 40px; }
+body.care-mode .wx-btn-primary { font-size: 34px; padding: 22px 0; border-radius: 16px; }
+body.care-mode .wx-btn-secondary { font-size: 30px; padding: 20px 0; }
+body.care-mode .wx-hint { font-size: 22px; gap: 10px 24px; }
+body.care-mode .lang-btn { font-size: 19px; padding: 9px 18px; }
+body.care-mode .care-btn { font-size: 19px; padding: 10px 20px; }
+body.care-mode .result-icon { font-size: 112px; }
+body.care-mode .result-title { font-size: clamp(44px, 9vw, 60px); }
+body.care-mode .result-score-label { font-size: 27px; }
+body.care-mode .result-score-value { font-size: 40px; }
+body.care-mode .result-msg { font-size: 24px; }
+body.care-mode #score { font-size: clamp(24px, 3.4vw, 34px); padding: 12px 24px; }
+body.care-mode .top-btn,
+body.care-mode #top-controls #sound-toggle { width: 52px; height: 52px; font-size: 24px; }
+body.care-mode .wx-card { width: min(760px, 96vw); }
 
 /* ── Hint row ── */
 .wx-hint {

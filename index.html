@@ -6,16 +6,16 @@
   <meta name="description" content="恐龙快跑（黄州府）——穿越黄州名胜古迹的跑酷小游戏">
   <meta name="theme-color" content="#07c160">
   <title>恐龙快跑（黄州府）</title>
-  <link rel="stylesheet" href="dino.css?v=20260827c">
-  <link rel="icon" type="image/png" href="game/assets/小恐龙-removebg-preview.webp">
+  <link rel="stylesheet" href="dino.css?v=20260827e">
+  <link rel="icon" type="image/png" href="images/小恐龙-removebg-preview.png">
 </head>
 <body>
 
   <!-- Loading -->
   <div id="loading">
-    <div class="loading-dino">🦕</div>
+    <div class="loading-dino"><img src="images/小恐龙-removebg-preview.png" alt="🦕"></div>
     <div class="loading-bar"><div id="loading-progress"></div></div>
-    <p id="loading-text">加载中…</p>
+    <p id="loading-text" data-i18n="loading">加载中…</p>
   </div>
 
   <!-- Game canvas -->
@@ -23,7 +23,7 @@
 
   <!-- Score -->
   <div id="score">
-    <span class="score-label">分数</span>
+    <span class="score-label" data-i18n="score_label">分数</span>
     <span id="score-current">0</span>
     <span class="score-sep">/</span>
     <span id="score-target">10</span>
@@ -46,35 +46,35 @@
   <div id="startscreen" class="overlay">
     <div class="wx-card">
       <div class="wx-card-header">
-        <div class="wx-logo">🦕</div>
-        <h1 class="wx-title">恐龙快跑</h1>
-        <p class="wx-subtitle">黄州府 · 穿越名胜古迹</p>
+        <div class="wx-logo"><img src="images/小恐龙-removebg-preview.png" alt="🦕"></div>
+        <h1 class="wx-title" data-i18n="game_title">恐龙快跑</h1>
+        <p class="wx-subtitle" data-i18n="game_subtitle">黄州府 · 穿越名胜古迹</p>
       </div>
 
       <div class="wx-card-body">
         <!-- Difficulty selection -->
         <div class="wx-section">
-          <p class="wx-section-label">选择难度</p>
+          <p class="wx-section-label" data-i18n="select_difficulty">选择难度</p>
           <div class="difficulty-grid">
             <button class="diff-btn" data-diff="casual">
               <span class="diff-icon">🌿</span>
-              <span class="diff-name">休闲</span>
-              <span class="diff-desc">轻松慢跑</span>
+              <span class="diff-name" data-i18n="diff_casual">休闲</span>
+              <span class="diff-desc" data-i18n="diff_casual_desc">轻松慢跑</span>
             </button>
             <button class="diff-btn" data-diff="novice">
               <span class="diff-icon">🍅</span>
-              <span class="diff-name">上手</span>
-              <span class="diff-desc">圣女火光</span>
+              <span class="diff-name" data-i18n="diff_novice">上手</span>
+              <span class="diff-desc" data-i18n="diff_novice_desc">圣女火光</span>
             </button>
             <button class="diff-btn" data-diff="hooked">
               <span class="diff-icon">🦇</span>
-              <span class="diff-name">入坑</span>
-              <span class="diff-desc">空中危机</span>
+              <span class="diff-name" data-i18n="diff_hooked">入坑</span>
+              <span class="diff-desc" data-i18n="diff_hooked_desc">空中危机</span>
             </button>
             <button class="diff-btn" data-diff="expert">
               <span class="diff-icon">🔥</span>
-              <span class="diff-name">专家</span>
-              <span class="diff-desc">极速挑战</span>
+              <span class="diff-name" data-i18n="diff_expert">专家</span>
+              <span class="diff-desc" data-i18n="diff_expert_desc">极速挑战</span>
             </button>
           </div>
         </div>
@@ -82,8 +82,8 @@
         <!-- Target score -->
         <div class="wx-section">
           <p class="wx-section-label">
-            目标分数
-            <span class="wx-section-hint">设置你的挑战目标</span>
+            <span data-i18n="target_score">目标分数</span>
+            <span class="wx-section-hint" data-i18n="target_hint">设置你的挑战目标</span>
           </p>
           <div class="score-stepper">
             <button class="stepper-btn" id="score-minus" aria-label="减少">−</button>
@@ -93,13 +93,27 @@
         </div>
 
         <!-- Start button -->
-        <button id="start" class="wx-btn-primary">开 始 游 戏</button>
+        <button id="start" class="wx-btn-primary" data-i18n="start_game">开 始 游 戏</button>
 
         <!-- Controls hint -->
         <div class="wx-hint">
-          <span class="wx-hint-item">⌨️ 空格/↑ 跳跃</span>
-          <span class="wx-hint-item">← → 左右移动</span>
-          <span class="wx-hint-item">📱 左屏摇杆 · 右屏跳跃</span>
+          <span class="wx-hint-item" data-i18n="hint_keyboard">⌨️ 空格/↑ 跳跃</span>
+          <span class="wx-hint-item" data-i18n="hint_move">← → 左右移动</span>
+          <span class="wx-hint-item" data-i18n="hint_touch">📱 左屏摇杆 · 右屏跳跃</span>
+        </div>
+
+        <!-- Settings: language + care mode -->
+        <div class="wx-settings">
+          <div class="lang-switcher">
+            <button class="lang-btn" data-lang="zh" aria-label="中文">中文</button>
+            <button class="lang-btn" data-lang="en" aria-label="English">EN</button>
+            <button class="lang-btn" data-lang="fr" aria-label="Français">FR</button>
+            <button class="lang-btn" data-lang="de" aria-label="Deutsch">DE</button>
+          </div>
+          <button id="care-toggle" class="care-btn" aria-pressed="false">
+            <span class="care-icon">👴</span>
+            <span data-i18n="care_mode">关怀模式</span>
+          </button>
         </div>
       </div>
     </div>
@@ -109,21 +123,21 @@
   <div id="gameover" class="overlay" hidden>
     <div class="wx-card wx-card--result">
       <div class="result-icon" id="result-icon">🦕</div>
-      <h1 class="result-title" id="result-title">游戏结束</h1>
+      <h1 class="result-title" id="result-title" data-i18n="game_over">游戏结束</h1>
       <div class="result-score-box">
         <div class="result-score-row">
-          <span class="result-score-label">本次得分</span>
+          <span class="result-score-label" data-i18n="final_score">本次得分</span>
           <span class="result-score-value" id="final-score">0</span>
         </div>
         <div class="result-score-row">
-          <span class="result-score-label">目标分数</span>
+          <span class="result-score-label" data-i18n="target_score">目标分数</span>
           <span class="result-score-value" id="final-target">10</span>
         </div>
       </div>
       <p class="result-msg" id="result-msg"></p>
       <div class="result-btns">
-        <button id="btn-home" class="wx-btn-secondary">返回首页</button>
-        <button id="restart" class="wx-btn-primary">再来一次</button>
+        <button id="btn-home" class="wx-btn-secondary" data-i18n="back_home">返回首页</button>
+        <button id="restart" class="wx-btn-primary" data-i18n="play_again">再来一次</button>
       </div>
     </div>
   </div>
@@ -134,6 +148,6 @@
   <!-- Confetti canvas (above all overlays) -->
   <canvas id="confetti-canvas"></canvas>
 
-  <script src="dino.js?v=20260827c"></script>
+  <script src="dino.js?v=20260827e"></script>
 </body>
 </html>

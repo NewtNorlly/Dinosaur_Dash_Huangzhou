@@ -40,10 +40,197 @@
   const confettiCanvas = document.getElementById("confetti-canvas");
   const cctx = confettiCanvas ? confettiCanvas.getContext("2d") : null;
 
+  /* ═══════════════════════════ i18n (4 languages) ═══════════════════════════ */
+
+  const I18N = {
+    zh: {
+      loading: "加载中…",
+      score_label: "分数",
+      game_title: "恐龙快跑",
+      game_subtitle: "黄州府 · 穿越名胜古迹",
+      select_difficulty: "选择难度",
+      diff_casual: "休闲", diff_casual_desc: "轻松慢跑",
+      diff_novice: "上手", diff_novice_desc: "圣女火光",
+      diff_hooked: "入坑", diff_hooked_desc: "空中危机",
+      diff_expert: "专家", diff_expert_desc: "极速挑战",
+      target_score: "目标分数",
+      target_hint: "设置你的挑战目标",
+      start_game: "开 始 游 戏",
+      hint_keyboard: "⌨️ 空格/↑ 跳跃",
+      hint_move: "← → 左右移动",
+      hint_touch: "📱 左屏摇杆 · 右屏跳跃",
+      care_mode: "关怀模式",
+      game_over: "游戏结束",
+      victory: "挑战成功！",
+      final_score: "本次得分",
+      back_home: "返回首页",
+      play_again: "再来一次",
+      shield_pop: "护盾!",
+      shield_pop_multi: "护盾 x{n}!",
+      score_pop: "+1",
+      victory_msg: "太棒了！你成功达成了 {target} 分目标，{diff}难度通关！",
+      defeat_msg_near: "还差 {diff} 分就能达成目标，再接再厉！",
+      defeat_msg: "别灰心，再来一局吧！",
+      diff_name_casual: "休闲", diff_name_novice: "上手",
+      diff_name_hooked: "入坑", diff_name_expert: "专家",
+      flight_label: " · 飞翔中",
+    },
+    en: {
+      loading: "Loading…",
+      score_label: "Score",
+      game_title: "Dino Dash",
+      game_subtitle: "Huangzhou · Race Through Historic Sites",
+      select_difficulty: "Select Difficulty",
+      diff_casual: "Casual", diff_casual_desc: "Easy jog",
+      diff_novice: "Novice", diff_novice_desc: "Tomato fire",
+      diff_hooked: "Hooked", diff_hooked_desc: "Air danger",
+      diff_expert: "Expert", diff_expert_desc: "Speed rush",
+      target_score: "Target Score",
+      target_hint: "Set your challenge goal",
+      start_game: "START",
+      hint_keyboard: "⌨️ Space/↑ Jump",
+      hint_move: "← → Move",
+      hint_touch: "📱 Left stick · Right jump",
+      care_mode: "Care Mode",
+      game_over: "Game Over",
+      victory: "Victory!",
+      final_score: "Your Score",
+      back_home: "Home",
+      play_again: "Play Again",
+      shield_pop: "Shield!",
+      shield_pop_multi: "Shield x{n}!",
+      score_pop: "+1",
+      victory_msg: "Amazing! You reached {target} points on {diff} difficulty!",
+      defeat_msg_near: "Only {diff} points to go. Keep trying!",
+      defeat_msg: "Don't give up — try again!",
+      diff_name_casual: "Casual", diff_name_novice: "Novice",
+      diff_name_hooked: "Hooked", diff_name_expert: "Expert",
+      flight_label: " · Flying",
+    },
+    fr: {
+      loading: "Chargement…",
+      score_label: "Score",
+      game_title: "Dino Rush",
+      game_subtitle: "Huangzhou · Sites Historiques",
+      select_difficulty: "Difficulté",
+      diff_casual: "Détente", diff_casual_desc: "Balade",
+      diff_novice: "Novice", diff_novice_desc: "Feu tomate",
+      diff_hooked: "Mordu", diff_hooked_desc: "Danger aérien",
+      diff_expert: "Expert", diff_expert_desc: "Vitesse max",
+      target_score: "Objectif",
+      target_hint: "Définissez votre but",
+      start_game: "JOUER",
+      hint_keyboard: "⌨️ Espace/↑ Sauter",
+      hint_move: "← → Bouger",
+      hint_touch: "📱 Joystick gauche · Saut droit",
+      care_mode: "Mode Confort",
+      game_over: "Partie Terminée",
+      victory: "Victoire !",
+      final_score: "Votre Score",
+      back_home: "Accueil",
+      play_again: "Rejouer",
+      shield_pop: "Bouclier !",
+      shield_pop_multi: "Bouclier x{n} !",
+      score_pop: "+1",
+      victory_msg: "Bravo ! Vous avez atteint {target} points en difficulté {diff} !",
+      defeat_msg_near: "Encore {diff} points. Continuez !",
+      defeat_msg: "N'abandonnez pas — réessayez !",
+      diff_name_casual: "Détente", diff_name_novice: "Novice",
+      diff_name_hooked: "Mordu", diff_name_expert: "Expert",
+      flight_label: " · En vol",
+    },
+    de: {
+      loading: "Laden…",
+      score_label: "Punkte",
+      game_title: "Dino-Rennen",
+      game_subtitle: "Huangzhou · Historische Stätten",
+      select_difficulty: "Schwierigkeit",
+      diff_casual: "Locker", diff_casual_desc: "Gemütlich",
+      diff_novice: "Einsteiger", diff_novice_desc: "Tomatenfeuer",
+      diff_hooked: "Süchtig", diff_hooked_desc: "Luftgefahr",
+      diff_expert: "Experte", diff_expert_desc: "Tempo-Jagd",
+      target_score: "Zielpunkte",
+      target_hint: "Setze dein Ziel",
+      start_game: "START",
+      hint_keyboard: "⌨️ Leertaste/↑ Springen",
+      hint_move: "← → Bewegen",
+      hint_touch: "📱 Links Stick · Rechts Sprung",
+      care_mode: "Komfortmodus",
+      game_over: "Spiel Vorbei",
+      victory: "Sieg!",
+      final_score: "Dein Score",
+      back_home: "Start",
+      play_again: "Nochmal",
+      shield_pop: "Schild!",
+      shield_pop_multi: "Schild x{n}!",
+      score_pop: "+1",
+      victory_msg: "Super! Du hast {target} Punkte auf {diff} erreicht!",
+      defeat_msg_near: "Nur noch {diff} Punkte. Weiter so!",
+      defeat_msg: "Nicht aufgeben — versuch es nochmal!",
+      diff_name_casual: "Locker", diff_name_novice: "Einsteiger",
+      diff_name_hooked: "Süchtig", diff_name_expert: "Experte",
+      flight_label: " · Fliegt",
+    },
+  };
+
+  let currentLang = "zh";
+  function t(key, vars) {
+    let s = (I18N[currentLang] && I18N[currentLang][key]) || I18N.zh[key] || key;
+    if (vars) {
+      for (const k in vars) s = s.replace("{" + k + "}", vars[k]);
+    }
+    return s;
+  }
+
+  function applyLanguage(lang) {
+    if (!I18N[lang]) lang = "zh";
+    currentLang = lang;
+    document.documentElement.lang = lang === "zh" ? "zh-CN" : lang;
+    // Update all static text via data-i18n
+    document.querySelectorAll("[data-i18n]").forEach(function (el) {
+      el.textContent = t(el.getAttribute("data-i18n"));
+    });
+    // Update language button states
+    document.querySelectorAll(".lang-btn").forEach(function (btn) {
+      btn.classList.toggle("active", btn.getAttribute("data-lang") === lang);
+    });
+    // Update score label
+    if (scoreTargetEl) drawScore();
+    // Update CSS-reliant text (flight label)
+    document.documentElement.style.setProperty("--flight-label", '"' + t("flight_label") + '"');
+    // Update HTML lang attribute and font stack for CJK vs Latin
+    updateFontStack(lang);
+    // Persist
+    try { localStorage.setItem("dino_lang", lang); } catch (e) {}
+  }
+
+  function updateFontStack(lang) {
+    // CJK languages use SimSun-first; Latin languages use TNR-first
+    const root = document.documentElement;
+    if (lang === "zh") {
+      root.style.setProperty("--font-cjk", '"SimSun", "宋体", serif');
+      root.style.setProperty("--font-latin", '"TNR-Adjusted", "Times New Roman", serif');
+      document.body.style.fontFamily = '"TNR-Adjusted", "Times New Roman", "SimSun", "宋体", serif';
+    } else {
+      document.body.style.fontFamily = '"TNR-Adjusted", "Times New Roman", "SimSun", "宋体", serif';
+    }
+  }
+
+  /* ═══════════════════════════ Care Mode ═══════════════════════════ */
+
+  let careMode = false;
+  function applyCareMode(on) {
+    careMode = !!on;
+    document.body.classList.toggle("care-mode", careMode);
+    const btn = document.getElementById("care-toggle");
+    if (btn) btn.setAttribute("aria-pressed", careMode ? "true" : "false");
+    try { localStorage.setItem("dino_care", careMode ? "1" : "0"); } catch (e) {}
+  }
+
   /* ── Constants ── */
   const W = 1600, H = 900;
   const GROUND_Y = H;
-  const DINO_W = 160, DINO_H = 240;
+  const DINO_W = 190, DINO_H = 226;  // matches 321×383 image aspect ratio
   const DINO_X0 = (W - DINO_W) >> 1;
   const OBSTACLE_W = 48, OBSTACLE_H = 64;
   const OBSTACLE_Y = GROUND_Y - OBSTACLE_H;
@@ -237,7 +424,7 @@
   /* ═══════════════════════════ Asset Loading ═══════════════════════════ */
 
   const ASSET_LIST = [
-    { key: "小恐龙-removebg-preview", path: "game/assets/小恐龙-removebg-preview.webp" },
+    { key: "小恐龙-removebg-preview", path: "images/小恐龙-removebg-preview.png" },
     { key: "刺猬-removebg-preview", path: "game/assets/刺猬-removebg-preview.webp" },
     { key: "HG2.0", path: "game/assets/HG2.0.webp" },
     { key: "HG3.0-removebg-preview", path: "game/assets/HG3.0-removebg-preview.webp" },
@@ -281,7 +468,7 @@
       loaded++;
       const pct = Math.round((loaded / total) * 100);
       progressEl.style.transform = "scaleX(" + (pct / 100) + ")";
-      loadingText.textContent = "加载中… " + pct + "%";
+      loadingText.textContent = t("loading") + " " + pct + "%";
       if (loaded >= total) {
         setTimeout(() => {
           loadingEl.classList.add("hidden");
@@ -1185,7 +1372,7 @@
         obs.scored = true;
         if (!flying) {
           score++;
-          spawnScorePopup(obs.x + obs.w / 2, obs.y - 10, "+1", "#07c160");
+          spawnScorePopup(obs.x + obs.w / 2, obs.y - 10, t("score_pop"), "#07c160");
           drawScore();
         }
       }
@@ -1198,7 +1385,7 @@
         b.scored = true;
         if (!flying) {
           score++;
-          spawnScorePopup(b.x + b.w / 2, b.y - 10, "+1", "#7c3aed");
+          spawnScorePopup(b.x + b.w / 2, b.y - 10, t("score_pop"), "#7c3aed");
           drawScore();
         }
       }
@@ -1262,7 +1449,7 @@
           tomatoes[i].collected = true;
           activateFireShield();
           spawnScorePopup(tomatoes[i].x + tomatoes[i].w / 2, tomatoes[i].y - 10,
-            fireShieldCount > 1 ? "护盾 x" + fireShieldCount + "!" : "护盾!", "#ff6a00");
+            fireShieldCount > 1 ? t("shield_pop_multi", { n: fireShieldCount }) : t("shield_pop"), "#ff6a00");
           tomatoes.splice(i, 1);
         }
       }
@@ -1437,26 +1624,26 @@
 
     if (result === "victory") {
       resultIconEl.textContent = "🏆";
-      resultTitleEl.textContent = "挑战成功！";
+      resultTitleEl.textContent = t("victory");
       resultTitleEl.className = "result-title victory";
       gameOverScreen.querySelector(".wx-card--result").classList.add("wx-card--victory");
       gameOverScreen.querySelector(".wx-card--result").classList.remove("wx-card--defeat");
-      resultMsgEl.textContent = "太棒了！你成功达成了 " + targetScore + " 分目标，" +
-        (currentDiff.name) + "难度通关！";
+      var diffNameKey = "diff_name_" + selectedDifficulty;
+      resultMsgEl.textContent = t("victory_msg", { target: targetScore, diff: t(diffNameKey) });
       finalScoreEl.classList.add("highlight");
       // Celebration!
       spawnConfetti();
       triggerFlash(0.3, "255,215,0");
     } else {
       resultIconEl.textContent = "💥";
-      resultTitleEl.textContent = "游戏结束";
+      resultTitleEl.textContent = t("game_over");
       resultTitleEl.className = "result-title defeat";
       gameOverScreen.querySelector(".wx-card--result").classList.add("wx-card--defeat");
       gameOverScreen.querySelector(".wx-card--result").classList.remove("wx-card--victory");
-      var diff = targetScore - score;
-      resultMsgEl.textContent = diff > 0
-        ? "还差 " + diff + " 分就能达成目标，再接再厉！"
-        : "别灰心，再来一局吧！";
+      var remaining = targetScore - score;
+      resultMsgEl.textContent = remaining > 0
+        ? t("defeat_msg_near", { diff: remaining })
+        : t("defeat_msg");
       finalScoreEl.classList.remove("highlight");
     }
 
@@ -1526,6 +1713,25 @@
     else if (v > 999) targetScoreInput.value = 999;
   });
 
+  // Language switcher
+  document.querySelectorAll(".lang-btn").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      applyLanguage(btn.getAttribute("data-lang"));
+    });
+    btn.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
+  });
+
+  // Care mode toggle
+  var careBtn = document.getElementById("care-toggle");
+  if (careBtn) {
+    careBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      applyCareMode(!careMode);
+    });
+    careBtn.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
+  }
+
   /* ═══════════════════════════ Input ═══════════════════════════ */
 
   function onKeyDown(e) {
@@ -1570,6 +1776,17 @@
   /* ═══════════════════════════ Init ═══════════════════════════ */
 
   function init() {
+    // Load saved preferences
+    try {
+      var savedLang = localStorage.getItem("dino_lang");
+      var savedCare = localStorage.getItem("dino_care");
+      if (savedLang && I18N[savedLang]) applyLanguage(savedLang);
+      else applyLanguage("zh");
+      if (savedCare === "1") applyCareMode(true);
+    } catch (e) {
+      applyLanguage("zh");
+    }
+
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("resize", onResize);
