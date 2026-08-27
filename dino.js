@@ -225,9 +225,11 @@ function toggleBGM() {
   try { localStorage.setItem('dino_bgm', bgmEnabled ? '1' : '0'); } catch (e) {}
 }
 function updateSoundIcon() {
-  soundBtn.innerHTML = bgmEnabled
-    ? '<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>'
-    : '<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>';
+  if (bgmEnabled) {
+    soundBtn.classList.remove('top-btn--muted');
+  } else {
+    soundBtn.classList.add('top-btn--muted');
+  }
 }
 
 /* ─── Input ─── */
@@ -448,7 +450,23 @@ function drawShieldAura(x, y, w, h, frame) {
   ctx.restore();
 }
 
-function drawHedgehog(x, y, w, h, frame) {
+function drawHedgehog(x, y, w, h, frame, dir) {
+  // 统一使用最新版刺猬图像
+  if (hedgehogNewImg.complete && hedgehogNewImg.naturalWidth > 0) {
+    ctx.save();
+    const bob = Math.abs(Math.sin(frame * 0.18)) * 2;
+    const d = dir || 1;
+    if (d < 0) {
+      ctx.translate(x + w, y - bob);
+      ctx.scale(-1, 1);
+      ctx.drawImage(hedgehogNewImg, 0, 0, w, h);
+    } else {
+      ctx.drawImage(hedgehogNewImg, x, y - bob, w, h);
+    }
+    ctx.restore();
+    return;
+  }
+  // Fallback to old hedgehog image if new one not loaded
   if (hedgehogImg.complete && hedgehogImg.naturalWidth > 0) {
     ctx.save();
     ctx.drawImage(hedgehogImg, x, y, w, h);
@@ -1471,7 +1489,7 @@ const CasualMode = {
     if (this.gameOver) return;
     if (this.flying) return;
     if (!this.dino.jumping) {
-      this.dino.vy = -13; this.dino.jumping = true;
+      this.dino.vy = -15.5; this.dino.jumping = true;
       this.dino.squashVel = -0.10; // 弹簧冲量：起跳拉伸
       this.jumpHeld = true;
     }
@@ -1483,6 +1501,10 @@ const CasualMode = {
     if (this.flyCD > 0 || this.flying || this.gameOver) return;
     this.flying = true; this.flyTimer = 300; this.flyCD = 480;
     this.dino.jumping = false; this.dino.vy = 0;
+    // 视觉反馈：飞行激活粒子效果
+    spawnParticles(this.dino.x + this.dino.w / 2, this.dino.y + this.dino.h / 2, '#1989fa', 15);
+    spawnPopup(this.dino.x + this.dino.w / 2, this.dino.y - 10, t('flight'), '#1989fa');
+    playSfx('coin');
   },
 
   spawnObstacle() {
@@ -1516,9 +1538,10 @@ const CasualMode = {
       if (this.flyTimer <= 0) { this.flying = false; this.dino.jumping = true; this.dino.vy = -5; }
     } else {
       // Variable jump gravity (Mario-style): lower gravity while ascending and holding jump
-      const grav = (this.dino.vy < 0 && this.jumpHeld) ? GRAVITY * 0.5 : GRAVITY;
+      // 调低重力增强滞空感，按住跳跃键时上升更轻盈
+      const grav = (this.dino.vy < 0 && this.jumpHeld) ? 0.18 : 0.42;
       this.dino.vy += grav;
-      if (this.dino.vy > 14) this.dino.vy = 14; // terminal velocity
+      if (this.dino.vy > 16) this.dino.vy = 16; // terminal velocity
       this.dino.y += this.dino.vy;
       if (this.dino.y >= GROUND_Y - this.dino.h) {
         this.dino.y = GROUND_Y - this.dino.h;
@@ -1893,8 +1916,8 @@ const HookedMode = {
     this.ground = L[1].map(g => ({ x: g[0], y: g[1], w: g[2] }));
     this.plats = L[2].map(p => ({ x: p[0], y: p[1], w: p[2], type: p[3] || 'grass' }));
     this.pipes = L[3].map(p => ({ x: p[0], y: GROUND_Y - p[1], w: 50, h: p[1], hasPiranha: p[2] || 0 }));
-    this.enemies = L[4].map(e => ({ x: e[0], y: GROUND_Y - (e[0] === 'koopa' ? 56 : 54), type: e[1], w: e[1] === 'koopa' ? 60 : 56, h: e[1] === 'koopa' ? 56 : 54, range: e[2], startX: e[0], dir: 1, frame: 0 }));
-    this.bats = L[5].map(b => ({ x: b[0], y: b[1], w: 72, h: 54, range: b[2], startX: b[0], dir: 1, frame: 0 }));
+    this.enemies = L[4].map(e => ({ x: e[0], y: GROUND_Y - (e[0] === 'koopa' ? 56 : 54), type: e[1], w: e[1] === 'koopa' ? 60 : 56, h: e[1] === 'koopa' ? 56 : 54, range: e[2], startX: e[0], dir: 1, frame: 0 })).filter(e => e.startX > 400);
+    this.bats = L[5].map(b => ({ x: b[0], y: b[1], w: 72, h: 54, range: b[2], startX: b[0], dir: 1, frame: 0 })).filter(b => b.startX > 400);
     this.tomatoes = L[6].map(t => ({ x: t[0], y: t[1], size: 50, collected: false, frame: 0 }));
     this.balloon = { x: L[7][0], y: L[7][1] };
     this.blocks = (L[8] || []).map(b => ({ x: b[0], y: b[1], type: b[2], count: b[3] || 1, size: 48, used: false, hitFrame: 0 }));
@@ -1921,6 +1944,9 @@ const HookedMode = {
     const d = this.dino;
     if (d.onGround) { d.vy = -12; d.onGround = false; d.squashVel = -0.1; playSfx('jump'); }
   },
+
+  onJump() { if (this.gameOver) return; this.jumpHeld = true; this.jump(); },
+  onJumpRelease() { this.jumpHeld = false; },
 
   update() {
     if (this.gameOver) return;
@@ -2136,7 +2162,10 @@ const HookedMode = {
     // Ground (varied height)
     this.ground.forEach(g => drawGrassPlatform(g.x - cam, g.y, g.w, GROUND_Y + 60 - g.y));
 
-    // Pipes
+    // Piranhas (先画食人花，管道后画，盖住茎部消除残影)
+    this.piranhas.forEach(p => drawPiranha(p.x - cam, p.y, p.w, p.h, p.frame, p.emerge));
+
+    // Pipes (后画管道，覆盖食人花下半部分)
     this.pipes.forEach(p => drawPipe(p.x - cam, p.y, p.w, p.h));
 
     // Platforms
@@ -2159,9 +2188,6 @@ const HookedMode = {
         else drawQuestionBlock(bx - cam, b.y + yOff, b.size, this.frame, b.used);
       }
     });
-
-    // Piranhas
-    this.piranhas.forEach(p => drawPiranha(p.x - cam, p.y, p.w, p.h, p.frame, p.emerge));
 
     // Balloon
     drawBalloon(this.balloon.x - cam + 20, this.balloon.y, this.frame);
@@ -2209,8 +2235,8 @@ const ExpertMode = {
     this.levelW = L[0];
     this.layers = L[1].map(l => ({ x: l[0], y: l[1], w: l[2], h: l[3] || 80 }));
     this.pipes = L[2].map(p => ({ x: p[0], y: p[1], w: 50, h: p[2], hasPiranha: p[3] || 0 }));
-    this.enemies = L[3].map(e => ({ x: e[0], y: e[1], type: e[2], w: e[2] === 'koopa' ? 56 : 52, h: e[2] === 'koopa' ? 52 : 50, range: e[3], startX: e[0], dir: 1, frame: 0, layerY: e[1] }));
-    this.bats = L[4].map(b => ({ x: b[0], y: b[1], w: 68, h: 50, range: b[2], startX: b[0], dir: 1, frame: 0 }));
+    this.enemies = L[3].map(e => ({ x: e[0], y: e[1], type: e[2], w: e[2] === 'koopa' ? 56 : 52, h: e[2] === 'koopa' ? 52 : 50, range: e[3], startX: e[0], dir: 1, frame: 0, layerY: e[1] })).filter(e => e.startX > 400);
+    this.bats = L[4].map(b => ({ x: b[0], y: b[1], w: 68, h: 50, range: b[2], startX: b[0], dir: 1, frame: 0 })).filter(b => b.startX > 400);
     this.tomatoes = L[5].map(t => ({ x: t[0], y: t[1], size: 46, collected: false, frame: 0 }));
     this.balloon = { x: L[6][0], y: L[6][1] };
     this.blocks = (L[7] || []).map(b => ({ x: b[0], y: b[1], type: b[2], count: b[3] || 1, size: 44, used: false, hitFrame: 0 }));
@@ -2229,6 +2255,9 @@ const ExpertMode = {
     const d = this.dino;
     if (d.onGround) { d.vy = -11; d.onGround = false; d.squashVel = -0.1; playSfx('jump'); }
   },
+
+  onJump() { if (this.gameOver) return; this.jumpHeld = true; this.jump(); },
+  onJumpRelease() { this.jumpHeld = false; },
 
   update() {
     if (this.gameOver) return;
@@ -2439,7 +2468,10 @@ const ExpertMode = {
     // Layers (thick grass platforms)
     this.layers.forEach(l => drawGrassPlatform(l.x - cam, l.y, l.w, l.h));
 
-    // Pipes
+    // Piranhas (先画食人花，管道后画，盖住茎部消除残影)
+    this.piranhas.forEach(p => drawPiranha(p.x - cam, p.y, p.w, p.h, p.frame, p.emerge));
+
+    // Pipes (后画管道，覆盖食人花下半部分)
     this.pipes.forEach(p => drawPipe(p.x - cam, p.y, p.w, p.h));
 
     // Blocks
@@ -2477,9 +2509,6 @@ const ExpertMode = {
       ctx.stroke();
       ctx.restore();
     });
-
-    // Piranhas
-    this.piranhas.forEach(p => drawPiranha(p.x - cam, p.y, p.w, p.h, p.frame, p.emerge));
 
     // Balloon
     drawBalloon(this.balloon.x - cam + 20, this.balloon.y, this.frame);
@@ -2717,41 +2746,105 @@ function drawQuestionBlock(x, y, size, frame, used) {
 }
 
 function drawGrassPlatform(x, y, w, h) {
-  // Thick earth platform with grass top
+  // 精致土壤平台：圆角、多层纹理、小石头、草根、柔和草地
   ctx.save();
-  // Dirt body
+  const radius = Math.min(8, h * 0.15);
+
+  // ── 土壤主体（多层渐变，模拟真实土壤层次）──
   const dirtGrad = ctx.createLinearGradient(x, y, x, y + h);
-  dirtGrad.addColorStop(0, '#8D6E63');
-  dirtGrad.addColorStop(1, '#5D4037');
+  dirtGrad.addColorStop(0, '#A1887F');   // 表层浅土
+  dirtGrad.addColorStop(0.15, '#8D6E63'); // 中层
+  dirtGrad.addColorStop(0.6, '#6D4C41');  // 深层
+  dirtGrad.addColorStop(1, '#4E342E');    // 底部深色
   ctx.fillStyle = dirtGrad;
-  ctx.fillRect(x, y + 12, w, h - 12);
-  // Grass top
-  const grassGrad = ctx.createLinearGradient(x, y, x, y + 16);
-  grassGrad.addColorStop(0, '#66BB6A');
-  grassGrad.addColorStop(1, '#43A047');
-  ctx.fillStyle = grassGrad;
-  ctx.fillRect(x, y, w, 16);
-  // Grass blades
-  ctx.fillStyle = '#81C784';
-  for (let gx = x + 4; gx < x + w - 4; gx += 12) {
+  ctx.beginPath();
+  ctx.roundRect(x, y + 10, w, h - 10, radius);
+  ctx.fill();
+
+  // ── 土壤纹理：随机小石头颗粒（用确定性伪随机，避免闪烁）──
+  for (let i = 0; i < Math.floor(w / 18); i++) {
+    const sx = x + 8 + ((i * 37 + Math.floor(y)) % Math.max(1, w - 16));
+    const sy = y + 22 + ((i * 23 + 5) % Math.max(1, h - 30));
+    const sr = 1 + (i % 3) * 0.6;
+    // 石头底色
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.12)';
     ctx.beginPath();
-    ctx.moveTo(gx, y);
-    ctx.lineTo(gx + 2, y - 5);
-    ctx.lineTo(gx + 4, y);
-    ctx.closePath(); ctx.fill();
+    ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+    ctx.fill();
   }
-  // Dirt texture dots
-  ctx.fillStyle = 'rgba(0,0,0,0.1)';
-  for (let dy = y + 20; dy < y + h - 4; dy += 16) {
-    for (let dx = x + 8; dx < x + w - 8; dx += 24) {
-      ctx.beginPath();
-      ctx.arc(dx + (dy % 32 === 0 ? 6 : 0), dy, 2, 0, Math.PI * 2);
-      ctx.fill();
+
+  // ── 土壤纹理：水平层理线（模拟沉积层）──
+  ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+  ctx.lineWidth = 1;
+  for (let ly = y + 28; ly < y + h - 6; ly += 14) {
+    ctx.beginPath();
+    ctx.moveTo(x + 6, ly);
+    for (let lx = x + 6; lx < x + w - 6; lx += 20) {
+      ctx.quadraticCurveTo(lx + 10, ly + (lx % 40 < 20 ? 1 : -1), lx + 20, ly);
     }
+    ctx.stroke();
   }
-  // Bottom edge
-  ctx.fillStyle = '#4E342E';
-  ctx.fillRect(x, y + h - 3, w, 3);
+
+  // ── 草根（从草地向下延伸的细根）──
+  ctx.strokeStyle = 'rgba(121,85,72,0.4)';
+  ctx.lineWidth = 1;
+  for (let rx = x + 6; rx < x + w - 6; rx += 22) {
+    const rootLen = 8 + (rx % 15);
+    ctx.beginPath();
+    ctx.moveTo(rx, y + 12);
+    ctx.quadraticCurveTo(rx + 2, y + 12 + rootLen * 0.5, rx + (rx % 3 === 0 ? 3 : -2), y + 12 + rootLen);
+    ctx.stroke();
+  }
+
+  // ── 草地顶部（柔和渐变 + 圆角）──
+  const grassGrad = ctx.createLinearGradient(x, y, x, y + 18);
+  grassGrad.addColorStop(0, '#81C784');   // 顶部亮绿
+  grassGrad.addColorStop(0.5, '#66BB6A');  // 中层
+  grassGrad.addColorStop(1, '#4CAF50');    // 底部深绿
+  ctx.fillStyle = grassGrad;
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, 18, [radius, radius, 0, 0]);
+  ctx.fill();
+
+  // ── 草地与土壤的柔和过渡带 ──
+  const transitionGrad = ctx.createLinearGradient(x, y + 14, x, y + 22);
+  transitionGrad.addColorStop(0, 'rgba(76,175,80,0.6)');
+  transitionGrad.addColorStop(1, 'rgba(141,110,99,0)');
+  ctx.fillStyle = transitionGrad;
+  ctx.fillRect(x, y + 14, w, 8);
+
+  // ── 草叶（自然不规则高度，微弯）──
+  for (let gx = x + 3; gx < x + w - 3; gx += 7) {
+    const bladeH = 4 + ((gx * 7 + Math.floor(y)) % 5);
+    const bend = (gx % 3 === 0) ? 1.5 : (gx % 3 === 1 ? -1 : 0);
+    ctx.fillStyle = gx % 2 === 0 ? '#A5D6A7' : '#81C784';
+    ctx.beginPath();
+    ctx.moveTo(gx, y + 2);
+    ctx.quadraticCurveTo(gx + bend, y - bladeH * 0.5, gx + bend * 0.5, y - bladeH);
+    ctx.quadraticCurveTo(gx + bend * 1.5, y - bladeH * 0.5, gx + 3, y + 2);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // ── 顶部高光（柔和阳光感）──
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.beginPath();
+  ctx.roundRect(x + 2, y + 1, w - 4, 3, 2);
+  ctx.fill();
+
+  // ── 底部边缘（圆角 + 深色阴影）──
+  ctx.fillStyle = '#3E2723';
+  ctx.beginPath();
+  ctx.roundRect(x, y + h - 4, w, 4, [0, 0, radius, radius]);
+  ctx.fill();
+
+  // ── 左侧柔和阴影（立体感）──
+  const sideShade = ctx.createLinearGradient(x, y, x + 10, y);
+  sideShade.addColorStop(0, 'rgba(0,0,0,0.15)');
+  sideShade.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = sideShade;
+  ctx.fillRect(x, y + 10, 10, h - 14);
+
   ctx.restore();
 }
 
@@ -2799,7 +2892,9 @@ function showStartScreen() {
   showOverlay(startScreen);
   scoreEl.hidden = true; levelIndicator.hidden = true; topCtrls.style.display = 'none';
   mobileCtrls.style.display = 'none'; flightBtn.hidden = true;
+  ctx.clearRect(0, 0, W, H);
   cctx.clearRect(0, 0, W, H); confettiParts = [];
+  particles = []; popups = []; screenShake = 0;
   destroyJoy();
 }
 
@@ -2839,7 +2934,7 @@ function startGame(modeKey, lvl) {
   } else if (modeKey === 'novice') handler = NoviceMode;
   else if (modeKey === 'hooked') handler = HookedMode;
   else handler = ExpertMode;
-  handler.init();
+  handler.init(levelIdx);
   gameState = 'playing';
   playBGM();
 }
@@ -2962,7 +3057,11 @@ targetInput.addEventListener('change', () => {
 
 // Top controls
 soundBtn.addEventListener('click', toggleBGM);
-flightBtn.addEventListener('click', () => { if (handler === CasualMode) CasualMode.activateFlight(); });
+flightBtn.addEventListener('click', () => {
+  if (gameState === 'playing' && mode === 'casual' && handler && handler.activateFlight) {
+    handler.activateFlight();
+  }
+});
 pauseBtn.addEventListener('click', () => { if (gameState === 'playing') pauseGame(); });
 
 // Pause popup
